@@ -214,3 +214,46 @@ streamlit run dashboard.py
 ```
 
 Anschließend können Sie über den Link auf Ihr Dashboard zugreifen. Dies startet ein webbasiertes Dashboard, das unter `http://localhost:8501` erreichbar ist.
+
+---
+
+## 📄 License
+
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+
+### Copyright Notice
+
+```text
+Shopping Analyzer - Tool to extract and manage Lidl receipt data
+Copyright (C) 2025 Lukas Weihrauch
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+```
+
+### What this means for you:
+
+- **Freedom to use**: You can use this software for any purpose
+- **Freedom to study**: You can examine how the program works and adapt it to your needs
+- **Freedom to share**: You can redistribute copies to help others
+- **Freedom to improve**: You can distribute copies of your modified versions to benefit the community
+
+### Important AGPL-3.0 Requirements:
+
+- **Network use = Source sharing**: If you run a modified version of this software on a server that others can access over a network, you must make the source code of your modified version available to those users
+- **Share improvements**: Any modifications or derivative works must also be licensed under AGPL-3.0
+- **Attribution**: You must preserve all copyright notices and license information
+
+For the complete license terms, see the [`LICENCE.md`](./LICENCE.md) file in this repository.
+
+---
