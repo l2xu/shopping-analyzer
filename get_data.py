@@ -98,7 +98,7 @@ def accept_cookies(driver):
 
 def login_to_lidl(driver, email, password):
     """
-    Log in to Lidl website with provided credentials.
+    Log in to Lidl website with provided credentials, handling the MFA step if it appears.
     
     Args:
         driver: WebDriver instance
@@ -128,13 +128,55 @@ def login_to_lidl(driver, email, password):
         print("Login-Daten eingegeben. Klicke auf Login...")
         login_button.click()
 
-        # Wait for login to complete
-        wait.until(EC.url_changes(LOGIN_URL))
+       
+        time.sleep(5)
+
+        # Check if we are on the MFA page
+        if "accounts.lidl.com/account/login/mfa" in driver.current_url:
+            print("MFA-Schritt erkannt. Warte auf die Verifizierungs-Auswahl...")
+
+            # Step 1: Choose email verification
+            try:
+                # Wait for the "E-Mail senden" button and click it
+                email_mfa_button = wait.until(EC.element_to_be_clickable(
+                    (By.ID, "sso_2FAvalidation_emailbutton")))
+                print("Klicke auf 'E-Mail senden'...")
+                email_mfa_button.click()
+            except Exception as e:
+                print(
+                    f"Fehler: Konnte den 'E-Mail senden'-Button nicht finden oder klicken: {e}")
+                return False
+
+            # Step 2: Enter the code from the email
+            try:
+                code_field = wait.until(
+                    EC.presence_of_element_located((By.ID, "verificationCode")))
+                print("Eine E-Mail mit einem 6-stelligen Code wurde versendet.")
+
+                mfa_code = input(
+                    "Bitte den 6-stelligen Code aus der E-Mail eingeben und Enter drücken: ").strip()
+
+                code_field.send_keys(mfa_code)
+
+                confirm_button = driver.find_element(
+                    By.CSS_SELECTOR, "button[type='submit']")
+                print("Bestätige den Code...")
+                confirm_button.click()
+            except Exception as e:
+                print(f"Fehler bei der Eingabe des MFA-Codes: {e}")
+                return False
+
+
+        print("Warte auf die Weiterleitung zur Einkaufs-Historie...")
+        wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
+
         print("Login erfolgreich!")
         return True
-        
+
     except Exception as e:
-        print(f"Login fehlgeschlagen: {e}")
+        print(
+            f"Login fehlgeschlagen. Möglicherweise falsche Anmeldedaten oder eine unerwartete Seitenänderung: {e}")
         return False
 
 
