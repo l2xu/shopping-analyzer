@@ -47,8 +47,14 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
 
 4. **Activate the virtual environment**
 
+   **On Mac/Linux:**
    ```bash
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source venv/bin/activate
+   ```
+
+   **On Windows:**
+   ```cmd
+   venv\Scripts\activate
    ```
 
 5. **Install dependencies**
@@ -152,8 +158,14 @@ This will start a web-based dashboard accessible at `http://localhost:8501` wher
 
 4. **Environment aktivieren**
 
+   **Unter Mac/Linux:**
    ```bash
-   source venv/bin/activate  # Unter Windows: venv\Scripts\activate
+   source venv/bin/activate
+   ```
+
+   **Unter Windows:**
+   ```cmd
+   venv\Scripts\activate
    ```
 
 5. **Benötigte Packages installieren**
