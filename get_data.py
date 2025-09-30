@@ -3,9 +3,16 @@ Lidl Receipt Data Updater
 =========================
 
 This module provides functions to handle both initial setup and incremental updates
-of Lidl receipt data with automatic date sorting.
-
-Usage:
+of Lidl receipt data with automatic date sor        wait = WebDriverWait(driver, 25)
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
+        
+        # Give page additional time to stabilize
+        time.sleep(3)
+        
+        ticket_elements = driver.find_elements(
+            By.CSS_SELECTOR, 
+            "div.purchase-history_ticketsTable__D-i0e a.ticket-row_row__3-1Iv"
+        )Usage:
     from lidl_updater import initial_setup, update_data
     
     # For first-time setup or complete refresh
@@ -15,11 +22,13 @@ Usage:
     update_data()
 """
 
+import re
 import time
 import json
 import os
 import getpass
 from datetime import datetime
+from urllib.parse import parse_qs, urlparse
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -77,7 +86,7 @@ def setup_driver():
 def accept_cookies(driver):
     """Accept cookies on the website."""
     try:
-        time.sleep(3)
+        time.sleep(5)
         cookie_button = driver.find_element(By.ID, "onetrust-accept-btn-handler")
         cookie_button.click()
         print("Cookies akzeptiert.")
@@ -104,7 +113,7 @@ def login_to_lidl(driver, email, password):
     try:
         print("Versuche, Login-Formular auszufüllen...")
         driver.get(LOGIN_URL)
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 20)
 
         # Fill email field
         email_field = wait.until(EC.presence_of_element_located((By.ID, "input-email")))
@@ -181,7 +190,7 @@ def sort_receipts_by_date():
 def collect_ticket_links_from_page(driver):
     """Collect all ticket links from the current page."""
     try:
-        wait = WebDriverWait(driver, 15)
+        wait = WebDriverWait(driver, 25)
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
         
         ticket_elements = driver.find_elements(
@@ -211,7 +220,10 @@ def go_to_next_page(driver):
         next_button = driver.find_element(By.CSS_SELECTOR, "[data-testid='right-arrow']")
         next_button.click()
         
-        wait = WebDriverWait(driver, 15)
+        # Give page time to start loading
+        time.sleep(2)
+        
+        wait = WebDriverWait(driver, 25)
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
         return True
     except Exception as e:
@@ -242,7 +254,7 @@ def wait_for_receipt_page(driver, wait):
     return True
 
 
-def extract_basic_receipt_info(driver):
+def extract_basic_receipt_info(driver, url):
     """Extract basic receipt information (date, price, savings)."""
     receipt_data = {
         'purchase_date': None,
@@ -251,48 +263,111 @@ def extract_basic_receipt_info(driver):
         'lidlplus_saved_amount': None
     }
     
-    # Extract purchase date
+    # Extract purchase date from URL
     try:
-        date_element = driver.find_element(By.ID, "purchase_tender_information_7")
-        parts = date_element.text.strip().split()
-        if len(parts) >= 2:
-            receipt_data['purchase_date'] = f"{parts[0]} {parts[1]}"
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+        if 't' in query_params:
+            t_param = query_params['t'][0]
+            # Extract date from t parameter (format: YYYYMMDD somewhere in the string)
+            date_match = re.search(r'(20\d{6})', t_param)
+            if date_match:
+                date_str = date_match.group(1)
+                # Convert YYYYMMDD to DD.MM.YYYY
+                year = date_str[:4]
+                month = date_str[4:6]
+                day = date_str[6:8]
+                receipt_data['purchase_date'] = f"{day}.{month}.{year}"
     except:
         pass
 
-    # Extract total price
-    try:
-        total_element = driver.find_element(By.ID, "purchase_tender_information_5")
-        parts = total_element.text.strip().split()
-        if len(parts) >= 2:
-            receipt_data['total_price'] = parts[-2]
-    except:
-        pass
 
-    # Extract saved amount
+    # Extract total price (amount to pay - "zu zahlen")
     try:
-        saved_elements = driver.find_elements(By.ID, "purchase_summary_5")
-        if saved_elements:
-            receipt_data['saved_amount'] = saved_elements[-1].text.strip()
+        # Method 1: Look for "zu zahlen" line and extract the amount from the same line
+        purchase_summary_elements = driver.find_elements(By.CSS_SELECTOR, "[id^='purchase_summary_']")
+        for element in purchase_summary_elements:
+            element_text = element.text.strip()
+            if "zu zahlen" in element_text:
+                # Find all spans with bold class in the same parent to get the amount
+                parent = element.find_element(By.XPATH, "..")
+                amount_spans = parent.find_elements(By.CSS_SELECTOR, "span.css_bold")
+                for span in amount_spans:
+                    span_text = span.text.strip()
+                    # Look for a price pattern (digits,digits)
+                    if re.match(r'^\d+,\d+$', span_text):
+                        receipt_data['total_price'] = span_text
+                        break
+                if receipt_data['total_price']:
+                    break
+    except:
+        # Fallback: Try the old method from purchase_tender_information_5
+        try:
+            total_element = driver.find_element(By.ID, "purchase_tender_information_5")
+            parts = total_element.text.strip().split()
+            if len(parts) >= 2:
+                receipt_data['total_price'] = parts[-2]
+        except:
+            pass
+
+    # Extract saved amount (only "Preisvorteil" and "Rabatt" lines, excluding "Lidl Plus Rabatt")
+    try:
+        total_regular_savings = 0.0
+        
+        # Get the purchase list text and search for discount lines
+        try:
+            purchase_list = driver.find_element(By.CLASS_NAME, "purchase_list")
+            purchase_text = purchase_list.text
+            
+            # Find all discount lines and extract the amounts
+            lines = purchase_text.split('\n')
+            for line in lines:
+                # Include "Preisvorteil" lines
+                if "Preisvorteil" in line and "Gesamter" not in line:
+                    amount_match = re.search(r'-(\d+,\d+)', line)
+                    if amount_match:
+                        amount_str = amount_match.group(1)
+                        amount_float = float(amount_str.replace(',', '.'))
+                        total_regular_savings += amount_float
+                # Include "Rabatt" lines but exclude "Lidl Plus Rabatt"
+                elif "Rabatt" in line and "Lidl Plus Rabatt" not in line:
+                    amount_match = re.search(r'-(\d+,\d+)', line)
+                    if amount_match:
+                        amount_str = amount_match.group(1)
+                        amount_float = float(amount_str.replace(',', '.'))
+                        total_regular_savings += amount_float
+        except:
+            pass
+        
+        # Set the saved_amount if we found any regular savings
+        if total_regular_savings > 0:
+            receipt_data['saved_amount'] = f"{total_regular_savings:.2f}".replace('.', ',')
     except:
         pass
 
     # Extract Lidl Plus savings
     try:
-        lidlplus_elements = driver.find_elements(By.ID, "vat_info_line_8")
-        for element in lidlplus_elements:
-            if "EUR gespart" in element.text:
-                parts = element.text.strip().split()
-                for part in parts:
-                    clean_part = part.replace(',', '.').replace('-', '').replace('+', '').replace('€', '').replace('EUR', '').strip()
-                    if clean_part:
-                        try:
-                            float(clean_part)
-                            receipt_data['lidlplus_saved_amount'] = part
-                            break
-                        except ValueError:
-                            continue
-                break
+        # Look for the "Mit Lidl Plus" box that shows "X,XX EUR gespart"
+        try:
+            # First, try to find the specific "EUR gespart" text in the VAT info section
+            vat_info_elements = driver.find_elements(By.CSS_SELECTOR, ".vat_info span")
+            for element in vat_info_elements:
+                element_text = element.text.strip()
+                if "EUR gespart" in element_text:
+                    # Extract the amount before "EUR gespart"
+                    amount_match = re.search(r'(\d+,\d+)\s+EUR gespart', element_text)
+                    if amount_match:
+                        receipt_data['lidlplus_saved_amount'] = amount_match.group(1)
+                        break
+        except:
+            # Fallback: search in the entire page for "EUR gespart"
+            try:
+                page_text = driver.find_element(By.TAG_NAME, "body").text
+                gespart_match = re.search(r'(\d+,\d+)\s+EUR gespart', page_text)
+                if gespart_match:
+                    receipt_data['lidlplus_saved_amount'] = gespart_match.group(1)
+            except:
+                pass
     except:
         pass
     
@@ -386,12 +461,15 @@ def extract_receipt_data(driver, url):
         print(f"Extrahiere Daten von: {url}")
         driver.get(url)
         
-        wait = WebDriverWait(driver, 15)
+        # Give page time to start loading
+        time.sleep(2)
+        
+        wait = WebDriverWait(driver, 25)
         if not wait_for_receipt_page(driver, wait):
             return None
         
         # Extract basic info and items
-        receipt_data = extract_basic_receipt_info(driver)
+        receipt_data = extract_basic_receipt_info(driver, url)
         receipt_data['url'] = url
         receipt_data['items'] = extract_receipt_items(driver)
         
@@ -448,12 +526,18 @@ def process_receipts_from_pages(driver, existing_urls, stop_on_duplicate=False):
                 processed_count += 1
             else:
                 print("Fehler beim Extrahieren der Daten")
+            
+            # Add pause between receipts to avoid overwhelming the server
+            time.sleep(1)
         
         # Navigate back and check for next page
         current_page_url = f"https://www.lidl.de/mre/purchase-history?page={page_count}"
         driver.get(current_page_url)
         
-        wait = WebDriverWait(driver, 15)
+        # Give page time to load
+        time.sleep(3)
+        
+        wait = WebDriverWait(driver, 25)
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
         
         if not has_next_page(driver) or not go_to_next_page(driver):

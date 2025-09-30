@@ -43,7 +43,7 @@ if data:
         return float(str(x).replace(',', '.'))
 
     # Apply conversions
-    df['purchase_date'] = pd.to_datetime(df['purchase_date'], format='%d.%m.%Y %H:%M')
+    df['purchase_date'] = pd.to_datetime(df['purchase_date'], format='%d.%m.%Y')
     df['total_price'] = df['total_price'].apply(to_float)
     df['saved_amount'] = df['saved_amount'].apply(to_float)
     df['lidlplus_saved_amount'] = df['lidlplus_saved_amount'].apply(to_float) if 'lidlplus_saved_amount' in df.columns else 0.0

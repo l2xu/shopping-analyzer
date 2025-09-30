@@ -214,4 +214,3 @@ streamlit run dashboard.py
 ```
 
 Anschließend können Sie über den Link auf Ihr Dashboard zugreifen. Dies startet ein webbasiertes Dashboard, das unter `http://localhost:8501` erreichbar ist.
-# shopping-analyzer
