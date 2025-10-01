@@ -294,20 +294,8 @@ def get_receipt_details_and_html(session: requests.Session, receipt_id: str) -> 
             print(f"  Kein HTML-Inhalt gefunden für receipt_id: {receipt_id}")
             return None
 
-        # Parse the HTML (pass the API total amount as well)
+        # Parse the HTML receipt from the API
         parsed_data = parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, store)
-
-        # Calculate total from items (this is more accurate than API total)
-        total_from_items = 0.0
-        for item in parsed_data.get('items', []):
-            try:
-                item_total = float(item.get('total_price', '0').replace(',', '.'))
-                total_from_items += item_total
-            except (ValueError, AttributeError):
-                pass
-
-        if total_from_items > 0:
-            parsed_data['total_price'] = f"{total_from_items:.2f}".replace('.', ',')
 
         return parsed_data
 
@@ -324,6 +312,209 @@ def get_receipt_details_and_html(session: requests.Session, receipt_id: str) -> 
     except Exception as e:
         print(f"  Unerwarteter Fehler: {e}")
         return None
+
+
+def extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store):
+    """Extract basic receipt information using the exact logic from the provided code snippet."""
+    receipt_data = {
+        'id': receipt_id,
+        'purchase_date': receipt_date,
+        'total_price': None,  # Final amount actually paid
+        'total_price_no_saving': None,  # Sum of all items without any savings
+        'saved_amount': None,  # Regular savings (Preisvorteil, Rabatt)
+        'saved_pfand': None,  # Pfand/deposit returns
+        'lidlplus_saved_amount': None,  # Lidl Plus savings
+        'store': store,
+        'items': []
+    }
+
+    # Extract total price (amount to pay - "zu zahlen")
+    try:
+        # Method 1: Look for "zu zahlen" line and extract the amount from the same line
+        purchase_summary_elements = soup.find_all(id=re.compile(r'^purchase_summary_'))
+        for element in purchase_summary_elements:
+            element_text = element.get_text().strip()
+            if "zu zahlen" in element_text:
+                # Find all spans with bold class in the same parent to get the amount
+                parent = element.parent
+                amount_spans = parent.find_all('span', class_='css_bold')
+                for span in amount_spans:
+                    span_text = span.get_text().strip()
+                    # Look for a price pattern (digits,digits)
+                    if re.match(r'^\d+,\d+$', span_text):
+                        receipt_data['total_price'] = span_text
+                        break
+                if receipt_data['total_price']:
+                    break
+    except:
+        # Fallback: Try the old method from purchase_tender_information_5
+        try:
+            total_element = soup.find(id="purchase_tender_information_5")
+            if total_element:
+                parts = total_element.get_text().strip().split()
+                if len(parts) >= 2:
+                    receipt_data['total_price'] = parts[-2]
+        except:
+            pass
+
+    # Extract saved amount (only "Preisvorteil" and "Rabatt" lines, excluding "Lidl Plus Rabatt")
+    try:
+        total_regular_savings = 0.0
+
+        # Get the purchase list text and search for discount lines
+        try:
+            purchase_list = soup.find('span', class_='purchase_list')
+            if purchase_list:
+                purchase_text = purchase_list.get_text()
+
+                # Find all discount lines and extract the amounts
+                lines = purchase_text.split('\n')
+                for line in lines:
+                    # Include "Preisvorteil" lines
+                    if "Preisvorteil" in line and "Gesamter" not in line:
+                        amount_match = re.search(r'-(\d+,\d+)', line)
+                        if amount_match:
+                            amount_str = amount_match.group(1)
+                            amount_float = float(amount_str.replace(',', '.'))
+                            total_regular_savings += amount_float
+                    # Include "Rabatt" lines but exclude "Lidl Plus Rabatt"
+                    elif "Rabatt" in line and "Lidl Plus Rabatt" not in line:
+                        amount_match = re.search(r'-(\d+,\d+)', line)
+                        if amount_match:
+                            amount_str = amount_match.group(1)
+                            amount_float = float(amount_str.replace(',', '.'))
+                            total_regular_savings += amount_float
+        except:
+            pass
+
+        # Set the saved_amount if we found any regular savings
+        if total_regular_savings > 0:
+            receipt_data['saved_amount'] = f"{total_regular_savings:.2f}".replace('.', ',')
+    except:
+        pass
+
+    # Extract Lidl Plus savings
+    try:
+        # Look for the "Mit Lidl Plus" box that shows "X,XX EUR gespart"
+        try:
+            # First, try to find the specific "EUR gespart" text in the VAT info section
+            vat_info_elements = soup.find_all('span', class_='vat_info')
+            for element in vat_info_elements:
+                element_text = element.get_text().strip()
+                if "EUR gespart" in element_text:
+                    # Extract the amount before "EUR gespart"
+                    amount_match = re.search(r'(\d+,\d+)\s+EUR gespart', element_text)
+                    if amount_match:
+                        receipt_data['lidlplus_saved_amount'] = amount_match.group(1)
+                        break
+        except:
+            # Fallback: search in the entire page for "EUR gespart"
+            try:
+                page_text = soup.get_text()
+                gespart_match = re.search(r'(\d+,\d+)\s+EUR gespart', page_text)
+                if gespart_match:
+                    receipt_data['lidlplus_saved_amount'] = gespart_match.group(1)
+            except:
+                pass
+    except:
+        pass
+
+    return receipt_data
+
+
+def extract_receipt_items_from_html(soup):
+    """Extract items from receipt using the exact logic from the provided code snippet."""
+    items = []
+    try:
+        # Find all article spans (they contain data-art-* attributes)
+        article_spans = soup.find_all('span', class_='article')
+
+        if not article_spans:
+            print(f"Keine Artikel-Spans gefunden")
+            return items
+
+        # Group spans by article ID and description to handle duplicates
+        # This handles cases where same article ID appears with different descriptions
+        items_by_id_and_desc = {}
+        for span in article_spans:
+            art_id = span.get('data-art-id')
+            art_description = span.get('data-art-description', '')
+            if art_id and art_description:
+                key = f"{art_id}_{art_description}"
+                if key not in items_by_id_and_desc:
+                    items_by_id_and_desc[key] = []
+                items_by_id_and_desc[key].append(span)
+
+        # Process each article
+        for (art_id_and_desc, spans) in items_by_id_and_desc.items():
+            try:
+                # Get the first span (should contain all the data attributes)
+                main_span = spans[0]
+
+                # Extract item details from data attributes
+                art_description = main_span.get('data-art-description', '')
+                art_quantity = main_span.get('data-art-quantity', '1')
+                unit_price = main_span.get('data-unit-price', '')
+
+                if not art_description or not unit_price:
+                    continue
+
+                # Extract total price from span text - look for the bold price
+                total_price_text = unit_price  # Default to unit price
+                for span in spans:
+                    # Check if this span has the css_bold class (indicating it's the total price)
+                    span_class = span.get('class', [])
+                    if 'css_bold' in span_class:
+                        span_text = span.get_text().strip()
+                        # Look for price pattern (digits,digits)
+                        if re.match(r'^\d+,\d+$', span_text):
+                            # Check if this is likely the total price (not unit price)
+                            try:
+                                price_val = float(span_text.replace(',', '.'))
+                                unit_val = float(unit_price.replace(',', '.'))
+                                qty_val = float(art_quantity.replace(',', '.'))
+
+                                # If this matches the expected total, use it
+                                expected_total = unit_val * qty_val
+                                if abs(price_val - expected_total) < 0.01:
+                                    total_price_text = span_text
+                                    break
+                            except (ValueError, AttributeError):
+                                pass
+
+                # Determine unit (kg or stk) from text content
+                unit = 'stk'
+                for span in spans:
+                    span_text = span.get_text()
+                    if 'kg' in span_text or 'EUR/kg' in span_text:
+                        unit = 'kg'
+                        break
+
+                # Convert values for calculation
+                try:
+                    quantity = float(art_quantity.replace(',', '.'))
+                except (ValueError, AttributeError):
+                    quantity = 1.0
+
+                try:
+                    price = float(unit_price.replace(',', '.'))
+                except (ValueError, AttributeError):
+                    price = 0.0
+
+                items.append({
+                    'name': art_description,
+                    'price': unit_price,
+                    'quantity': art_quantity,
+                    'unit': unit
+                })
+
+            except Exception as e:
+                print(f"Fehler beim Extrahieren eines Artikels: {e}")
+
+    except Exception as e:
+        print(f"Artikel nicht gefunden: {e}")
+
+    return items
 
 
 def extract_savings_info(soup, receipt_data):
@@ -451,7 +642,7 @@ def sort_receipts_by_date():
 
 def parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, store):
     """
-    Parse receipt HTML content to extract items and other data.
+    Parse receipt HTML content to extract items and other data using the exact mechanisms from the provided code snippet.
 
     Args:
         html_content: HTML content of the receipt (from ticket.htmlPrintedReceipt)
@@ -465,96 +656,83 @@ def parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, sto
     """
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # Extract basic receipt info
-    receipt_data = {
-        'id': receipt_id,
-        'purchase_date': receipt_date,
-        'total_price': '0',  # Will be calculated from items later
-        'saved_amount': None,
-        'lidlplus_saved_amount': None,
-        'store': store,
-        'items': []
-    }
+    # Extract basic receipt info using the exact logic from the provided code snippet
+    receipt_data = extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store)
 
-    # Extract savings information first
-    extract_savings_info(soup, receipt_data)
+    # Extract items using the exact logic from the provided code snippet
+    receipt_data['items'] = extract_receipt_items_from_html(soup)
 
-    # Find all article spans (they contain data-art-* attributes)
-    article_spans = soup.find_all('span', class_='article')
-
-    if not article_spans:
-        print(f"Keine Artikel-Spans gefunden für {receipt_id}")
-        return receipt_data
-
-    # Group spans by article ID
-    items_by_id = {}
-    for span in article_spans:
-        art_id = span.get('data-art-id')
-        if art_id:
-            if art_id not in items_by_id:
-                items_by_id[art_id] = []
-            items_by_id[art_id].append(span)
-
-    # Process each item group
-    for art_id, spans in items_by_id.items():
+    # Calculate total from items (this is the price without any savings)
+    total_from_items = 0.0
+    for item in receipt_data.get('items', []):
         try:
-            # Get the first span (should contain all the data attributes)
-            main_span = spans[0]
+            item_price = float(item.get('price', '0').replace(',', '.'))
+            item_qty = float(item.get('quantity', '1').replace(',', '.'))
+            total_from_items += item_price * item_qty
+        except (ValueError, AttributeError):
+            pass
 
-            # Extract item details from data attributes
-            art_description = main_span.get('data-art-description', '')
-            art_quantity = main_span.get('data-art-quantity', '1')
-            unit_price = main_span.get('data-unit-price', '')
-            tax_type = main_span.get('data-tax-type', 'A')
+    if total_from_items > 0:
+        receipt_data['total_price_no_saving'] = f"{total_from_items:.2f}".replace('.', ',')
 
-            if not art_description or not unit_price:
-                continue
+        # Extract savings to calculate final paid price
+        total_savings = 0.0
 
-            # Extract total price from span text
-            total_price_text = unit_price  # Default to unit price
-            for span in spans:
-                span_text = span.get_text().strip()
-                # Look for price pattern (digits,digits)
-                if re.match(r'^\d+,\d+$', span_text):
-                    # Check if this is likely the total price (not unit price)
+        # Add regular savings (Preisvorteil, Rabatt)
+        if receipt_data.get('saved_amount'):
+            try:
+                saved_amount = float(receipt_data['saved_amount'].replace(',', '.'))
+                total_savings += saved_amount
+            except (ValueError, AttributeError):
+                pass
+
+        # Add Lidl Plus savings
+        if receipt_data.get('lidlplus_saved_amount'):
+            try:
+                lidl_savings = float(receipt_data['lidlplus_saved_amount'].replace(',', '.'))
+                total_savings += lidl_savings
+            except (ValueError, AttributeError):
+                pass
+
+        # Extract pfand savings from HTML
+        pfand_savings = 0.0
+        try:
+            purchase_list = soup.find('span', class_='purchase_list')
+            if purchase_list:
+                purchase_text = purchase_list.get_text()
+
+                # Look for Pfandrückgabe lines (format: "Pfandrückgabe" followed by amount)
+                # Use more specific regex to avoid matching calculation lines
+                pfand_matches = re.findall(r'Pfandrückgabe\s*(-?\d+,\d+)', purchase_text)
+                for match in pfand_matches:
                     try:
-                        price_val = float(span_text.replace(',', '.'))
-                        unit_val = float(unit_price.replace(',', '.'))
-                        qty_val = float(art_quantity.replace(',', '.'))
-
-                        # If this matches the expected total, use it
-                        expected_total = unit_val * qty_val
-                        if abs(price_val - expected_total) < 0.01:
-                            total_price_text = span_text
-                            break
+                        pfand_val = float(match.replace(',', '.'))
+                        pfand_savings += abs(pfand_val)  # Take absolute value since it's negative in receipt
                     except (ValueError, AttributeError):
                         pass
 
-            # Determine unit (kg or stk) from text content
-            unit = 'kg' if any('kg' in span.get_text() or 'EUR/kg' in span.get_text() for span in spans) else 'stk'
+                # If no direct Pfandrückgabe amount found, look for calculation lines
+                if pfand_savings == 0:
+                    pfand_calc_matches = re.findall(r'(-?\d+)\s*x\s*(-?\d+,\d+)', purchase_text)
+                    for qty_match, price_match in pfand_calc_matches:
+                        try:
+                            qty = float(qty_match)
+                            price = float(price_match.replace(',', '.'))
+                            calculated_pfand = abs(qty * price)  # Take absolute value
+                            pfand_savings += calculated_pfand
+                        except (ValueError, AttributeError):
+                            pass
+        except:
+            pass
 
-            # Convert values for calculation
-            try:
-                quantity = float(art_quantity.replace(',', '.'))
-            except (ValueError, AttributeError):
-                quantity = 1.0
+        if pfand_savings > 0:
+            receipt_data['saved_pfand'] = f"{pfand_savings:.2f}".replace('.', ',')
+            total_savings += pfand_savings
 
-            try:
-                price = float(unit_price.replace(',', '.'))
-            except (ValueError, AttributeError):
-                price = 0.0
-
-            receipt_data['items'].append({
-                'name': art_description,
-                'price': unit_price,
-                'quantity': art_quantity,
-                'unit': unit,
-                'total_price': total_price_text
-            })
-
-        except Exception as e:
-            print(f"Fehler beim Parsen eines Artikels: {e}")
-            continue
+        # Calculate final paid price
+        final_paid = total_from_items - total_savings
+        if final_paid > 0:
+            receipt_data['total_price'] = f"{final_paid:.2f}".replace('.', ',')
 
     return receipt_data
 
@@ -572,7 +750,7 @@ def collect_all_receipt_ids(session):
     all_receipt_ids = []
     page = 1
 
-    print("Sammle alle Kassenbon-IDs...")
+    print("Sammle alle Kassenbon-IDs mit digitalem Kassenbon über API...")
 
     while True:
         # Get tickets for current page
