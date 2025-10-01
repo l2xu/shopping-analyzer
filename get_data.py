@@ -24,15 +24,61 @@ import json
 import os
 import sys
 from datetime import datetime
+from typing import Optional, Dict, List, Any
 import requests
 from bs4 import BeautifulSoup
 import browser_cookie3
 
+
 # Configuration
-RECEIPTS_JSON_FILE = "lidl_receipts.json"
-LIDL_BASE_URL = "https://www.lidl.de"
-TICKETS_API_URL = f"{LIDL_BASE_URL}/mre/api/v1/tickets"
-RECEIPT_API_URL = f"{LIDL_BASE_URL}/mre/api/v1/tickets/{{receipt_id}}"
+class LidlConfig:
+    """Configuration constants for Lidl API integration."""
+
+    # File paths
+    RECEIPTS_JSON_FILE = "lidl_receipts.json"
+
+    # API endpoints
+    LIDL_BASE_URL = "https://www.lidl.de"
+    TICKETS_API_URL = f"{LIDL_BASE_URL}/mre/api/v1/tickets"
+    RECEIPT_API_URL = f"{LIDL_BASE_URL}/mre/api/v1/tickets/{{receipt_id}}"
+
+    # Request settings
+    DEFAULT_TIMEOUT = 15
+    REQUEST_DELAY = 0.5
+    PAGES_TO_CHECK = 3
+
+    # Browser settings
+    SUPPORTED_BROWSERS = {
+        'firefox': 'Firefox',
+        'chrome': 'Chrome'
+    }
+
+    # API settings
+    DEFAULT_COUNTRY = "DE"
+    DEFAULT_LANGUAGE = "de-DE"
+    DEFAULT_PAGE_SIZE = 10
+
+def setup_and_test_session() -> Optional[requests.Session]:
+    """
+    Common setup logic for both initial_setup and update_data.
+    Handles browser selection, cookie extraction, and API testing.
+
+    Returns:
+        requests.Session: Authenticated session if successful, None otherwise
+    """
+    # Let user select browser
+    browser = select_browser()
+
+    # Extract cookies from selected browser
+    session = extract_browser_cookies(browser)
+    if not session:
+        return None
+
+    # Test API connection
+    if not test_api_connection(session):
+        return None
+
+    return session
 
 
 def extract_browser_cookies(browser='firefox'):
@@ -41,16 +87,11 @@ def extract_browser_cookies(browser='firefox'):
 
     Args:
         browser: Browser to extract cookies from ('firefox' or 'chrome')
-    
+
     Returns:
         requests.Session: Session with Lidl authentication cookies
     """
-    browser_names = {
-        'firefox': 'Firefox',
-        'chrome': 'Chrome'
-    }
-
-    browser_name = browser_names.get(browser, browser)
+    browser_name = LidlConfig.SUPPORTED_BROWSERS.get(browser, browser)
     print(f"Extrahiere Cookies aus {browser_name} Browser...")
 
     try:
@@ -78,16 +119,13 @@ def extract_browser_cookies(browser='firefox'):
         return session
 
     except Exception as e:
-        print(f"Fehler beim Extrahieren der {browser_name} Cookies: {e}")
+        error_msg = f"Fehler beim Extrahieren der {browser_name} Cookies: {e}"
+        print(error_msg)
         print("Bitte stelle sicher, dass:")
         print(f"1. {browser_name} läuft und du bei Lidl angemeldet bist")
         print("2. Die Lidl-Website (www.lidl.de) in {browser_name} geöffnet ist")
-        return None
+        raise CookieExtractionError(error_msg) from e
 
-
-def extract_firefox_cookies():
-    """Legacy function for backward compatibility."""
-    return extract_browser_cookies('firefox')
 
 
 def select_browser():
@@ -118,7 +156,7 @@ def select_browser():
             return "firefox"  # Default fallback
 
 
-def test_api_connection(session):
+def test_api_connection(session: requests.Session) -> bool:
     """
     Test if the API connection with extracted cookies works.
 
@@ -133,8 +171,8 @@ def test_api_connection(session):
     try:
         # Test the tickets API endpoint
         response = session.get(
-            f"{TICKETS_API_URL}?country=DE&page=1",
-            timeout=10
+            f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page=1",
+            timeout=LidlConfig.DEFAULT_TIMEOUT
         )
         response.raise_for_status()
 
@@ -146,6 +184,14 @@ def test_api_connection(session):
             print("⚠ API-Antwort enthält keine Kassenbons")
             return False
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            print("✗ API-Verbindung fehlgeschlagen: Nicht autorisiert (401)")
+            print("Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist.")
+            print("Öffne www.lidl.de im Browser und melde dich an, bevor du das Programm ausführst.")
+        else:
+            print(f"✗ API-Verbindungsfehler ({e.response.status_code}): {e}")
+        return False
     except requests.exceptions.RequestException as e:
         print(f"✗ API-Verbindungsfehler: {e}")
         return False
@@ -154,21 +200,21 @@ def test_api_connection(session):
         return False
 
 
-def get_tickets_page(session, page=1):
+def get_tickets_page(session: requests.Session, page: int = 1) -> Optional[Dict[str, Any]]:
     """
     Fetch tickets for a specific page using the API.
-    
+
     Args:
         session: requests.Session with authentication
         page: Page number to fetch
-    
+
     Returns:
         dict: API response data or None if error
     """
     try:
         response = session.get(
-            f"{TICKETS_API_URL}?country=DE&page={page}",
-            timeout=15
+            f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page={page}",
+            timeout=LidlConfig.DEFAULT_TIMEOUT
         )
         response.raise_for_status()
 
@@ -190,15 +236,22 @@ def get_tickets_page(session, page=1):
             print(f"Unerwartete API-Antwort-Struktur für Seite {page}")
             return None
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            print(f"✗ Nicht autorisiert beim Abrufen der Tickets-Seite {page}")
+            print("Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist.")
+        else:
+            print(f"✗ HTTP-Fehler beim Abrufen der Tickets-Seite {page}: {e}")
+        return None
     except requests.exceptions.RequestException as e:
-        print(f"Fehler beim Abrufen der Tickets-Seite {page}: {e}")
+        print(f"✗ Fehler beim Abrufen der Tickets-Seite {page}: {e}")
         return None
     except json.JSONDecodeError as e:
-        print(f"JSON-Decodierungsfehler für Seite {page}: {e}")
+        print(f"✗ JSON-Decodierungsfehler für Seite {page}: {e}")
         return None
 
 
-def get_receipt_details_and_html(session, receipt_id):
+def get_receipt_details_and_html(session: requests.Session, receipt_id: str) -> Optional[Dict[str, Any]]:
     """
     Fetch receipt details and HTML content for a specific receipt.
 
@@ -210,10 +263,10 @@ def get_receipt_details_and_html(session, receipt_id):
         dict: Parsed receipt data or None if error
     """
     try:
-        url = RECEIPT_API_URL.format(receipt_id=receipt_id)
-        full_url = f"{url}?country=DE&languageCode=de-DE"
+        url = LidlConfig.RECEIPT_API_URL.format(receipt_id=receipt_id)
+        full_url = f"{url}?country={LidlConfig.DEFAULT_COUNTRY}&languageCode={LidlConfig.DEFAULT_LANGUAGE}"
 
-        response = session.get(full_url, timeout=15)
+        response = session.get(full_url, timeout=LidlConfig.DEFAULT_TIMEOUT)
         response.raise_for_status()
 
         data = response.json()
@@ -238,7 +291,7 @@ def get_receipt_details_and_html(session, receipt_id):
         html_content = ticket_data.get('htmlPrintedReceipt', '')
 
         if not html_content:
-            print(f"  Kein HTML-Inhalt gefunden")
+            print(f"  Kein HTML-Inhalt gefunden für receipt_id: {receipt_id}")
             return None
 
         # Parse the HTML (pass the API total amount as well)
@@ -258,6 +311,13 @@ def get_receipt_details_and_html(session, receipt_id):
 
         return parsed_data
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            print(f"  Nicht autorisiert beim Abrufen von receipt_id: {receipt_id}")
+            print("  Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist.")
+        else:
+            print(f"  HTTP-Fehler beim Abrufen: {e}")
+        return None
     except requests.exceptions.RequestException as e:
         print(f"  Fehler beim Abrufen: {e}")
         return None
@@ -314,13 +374,13 @@ def extract_savings_info(soup, receipt_data):
         print(f"Fehler beim Extrahieren der Lidl Plus Ersparnisse: {e}")
 
 
-def load_existing_receipts():
+def load_existing_receipts() -> tuple[set[str], list[Dict[str, Any]]]:
     """Load existing receipts from JSON file."""
-    if not os.path.exists(RECEIPTS_JSON_FILE):
+    if not os.path.exists(LidlConfig.RECEIPTS_JSON_FILE):
         return set(), []
 
     try:
-        with open(RECEIPTS_JSON_FILE, 'r', encoding='utf-8') as file:
+        with open(LidlConfig.RECEIPTS_JSON_FILE, 'r', encoding='utf-8') as file:
             receipts = json.load(file)
         # Handle both old format (with 'url') and new format (with 'id')
         existing_ids = set()
@@ -331,13 +391,14 @@ def load_existing_receipts():
                 # For backward compatibility with old format
                 existing_ids.add(receipt['url'])
         return existing_ids, receipts
-    except (json.JSONDecodeError, KeyError):
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Warning: Error loading existing receipts: {e}")
         return set(), []
 
 
 def save_receipts_to_json(receipts):
     """Save all receipts to JSON file."""
-    with open(RECEIPTS_JSON_FILE, 'w', encoding='utf-8') as file:
+    with open(LidlConfig.RECEIPTS_JSON_FILE, 'w', encoding='utf-8') as file:
         json.dump(receipts, file, ensure_ascii=False, indent=2)
 
 
@@ -596,7 +657,7 @@ def process_all_tickets(session):
             skipped_count += 1
 
         # Add pause between requests to be respectful
-        time.sleep(0.5)
+        time.sleep(LidlConfig.REQUEST_DELAY)
 
     return processed_count, skipped_count, len(all_receipt_ids) // 10 + 1
 
@@ -610,19 +671,9 @@ def initial_setup():
     """
     print("=== INITIAL SETUP: Extrahiere alle Kassenbons ===")
 
-    # Let user select browser
-    browser = select_browser()
-
-    # Extract cookies from selected browser
-    session = extract_browser_cookies(browser)
-
+    # Setup session with browser selection, cookie extraction, and API testing
+    session = setup_and_test_session()
     if not session:
-        print("✗ Fehler beim Extrahieren der Cookies")
-        return False
-
-    # Test API connection
-    if not test_api_connection(session):
-        print("✗ API-Verbindung fehlgeschlagen")
         return False
 
     # Process all tickets
@@ -650,26 +701,15 @@ def update_data():
     """
     print("=== UPDATE: Füge neue Kassenbons hinzu ===")
 
-    # Let user select browser
-    browser = select_browser()
-
-    # Extract cookies from selected browser
-    session = extract_browser_cookies(browser)
-
+    # Setup session with browser selection, cookie extraction, and API testing
+    session = setup_and_test_session()
     if not session:
-        print("✗ Fehler beim Extrahieren der Cookies")
-        return False
-
-    # Test API connection
-    if not test_api_connection(session):
-        print("✗ API-Verbindung fehlgeschlagen")
         return False
 
     # Collect recent receipt IDs (check first few pages)
     recent_receipt_ids = []
-    pages_to_check = 3  # Check first 3 pages for recent receipts
 
-    for page in range(1, pages_to_check + 1):
+    for page in range(1, LidlConfig.PAGES_TO_CHECK + 1):
         tickets_data = get_tickets_page(session, page)
 
         if not tickets_data or 'items' not in tickets_data:
@@ -717,7 +757,7 @@ def update_data():
         else:
             print("⚠ Fehler beim Verarbeiten")
 
-        time.sleep(0.5)
+        time.sleep(LidlConfig.REQUEST_DELAY)
 
     # Final sort if we added new receipts
     if processed_count > 0:
