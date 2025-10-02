@@ -133,38 +133,62 @@ def login_to_lidl(driver, email, password):
 
         # Check if we are on the MFA page
         if "accounts.lidl.com/account/login/mfa" in driver.current_url:
+
+            
+
             print("MFA-Schritt erkannt. Warte auf die Verifizierungs-Auswahl...")
+            
 
-            # Step 1: Choose email verification
-            try:
-                # Wait for the "E-Mail senden" button and click it
-                email_mfa_button = wait.until(EC.element_to_be_clickable(
-                    (By.ID, "sso_2FAvalidation_emailbutton")))
-                print("Klicke auf 'E-Mail senden'...")
-                email_mfa_button.click()
-            except Exception as e:
-                print(
-                    f"Fehler: Konnte den 'E-Mail senden'-Button nicht finden oder klicken: {e}")
-                return False
+            verification = int(input("Bitte wählen Sie die Verifizierungsart (1 -> E-Mail, 2 -> SMS): "))
 
-            # Step 2: Enter the code from the email
-            try:
-                code_field = wait.until(
-                    EC.presence_of_element_located((By.ID, "verificationCode")))
-                print("Eine E-Mail mit einem 6-stelligen Code wurde versendet.")
+            if verification == 1:
+                # Step 1: Choose email verification
+                try:
+                    # Wait for the "E-Mail senden" button and click it
+                    email_mfa_button = wait.until(EC.element_to_be_clickable(
+                        (By.ID, "sso_2FAvalidation_emailbutton")))
+                    print("Klicke auf 'E-Mail senden'...")
+                    email_mfa_button.click()
+                except Exception as e:
+                    print(
+                        f"Fehler: Konnte den 'E-Mail senden'-Button nicht finden oder klicken: {e}")
+                    return False
 
-                mfa_code = input(
-                    "Bitte den 6-stelligen Code aus der E-Mail eingeben und Enter drücken: ").strip()
+                # Step 2: Enter the code from the email
+                try:
+                    code_field = wait.until(
+                        EC.presence_of_element_located((By.ID, "verificationCode")))
+                    print("Eine E-Mail mit einem 6-stelligen Code wurde versendet.")
 
-                code_field.send_keys(mfa_code)
+                    mfa_code = input(
+                        "Bitte den 6-stelligen Code aus der E-Mail eingeben und Enter drücken: ").strip()
 
-                confirm_button = driver.find_element(
-                    By.CSS_SELECTOR, "button[type='submit']")
-                print("Bestätige den Code...")
-                confirm_button.click()
-            except Exception as e:
-                print(f"Fehler bei der Eingabe des MFA-Codes: {e}")
-                return False
+                    code_field.send_keys(mfa_code)
+
+                    confirm_button = driver.find_element(
+                        By.CSS_SELECTOR, "button[type='submit']")
+                    print("Bestätige den Code...")
+                    confirm_button.click()
+                except Exception as e:
+                    print(f"Fehler bei der Eingabe des MFA-Codes: {e}")
+                    return False
+                
+            elif verification == 2:
+                try:
+                    # Enter the code and click the "Bestätigen" button
+                    sms_code_field = wait.until(EC.element_to_be_clickable(
+                        (By.ID, "verificationCode")))
+                    verification_code = input("Bitte den 6-Stelligen Code aus der SMS eingeben und Enter drücken: ")
+                    sms_code_field.send_keys(verification_code)
+                    confirm_button = driver.find_element(
+                        By.CSS_SELECTOR, "button[type='submit']")
+                    print("Bestätige den Code...")
+                    confirm_button.click()
+
+                except Exception as e:
+                    print(
+                        f"Fehler: Konnte das 'verificationCode'-Feld nicht finden oder den Code eingeben: {e}")
+                    return False
 
 
         print("Warte auf die Weiterleitung zur Einkaufs-Historie...")
