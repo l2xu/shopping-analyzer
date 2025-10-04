@@ -139,7 +139,7 @@ if data:
         spending_view = st.radio("Ausgabenansicht:", ["Täglich", "Kumulativ"], horizontal=True, key="spending_view")
         
         if spending_view == "Täglich":
-            st.line_chart(daily_spending.set_index('Datum')['Tägliche Ausgaben (€)'])
+            st.bar_chart(daily_spending.set_index('Datum')['Tägliche Ausgaben (€)'])
             
             # Show summary stats
             col1, col2, col3 = st.columns(3)
@@ -148,7 +148,7 @@ if data:
             col3.metric("Niedrigste tägliche Ausgaben", f"€{daily_spending['Tägliche Ausgaben (€)'].min():.2f}")
             
         else:  # Cumulative view
-            st.line_chart(daily_spending.set_index('Datum')['Kumulative Ausgaben (€)'])
+            st.bar_chart(daily_spending.set_index('Datum')['Kumulative Ausgaben (€)'])
             
             # Show growth metrics
             total_days = len(daily_spending)
