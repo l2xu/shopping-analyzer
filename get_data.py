@@ -3,16 +3,9 @@ Lidl Receipt Data Updater
 =========================
 
 This module provides functions to handle both initial setup and incremental updates
-of Lidl receipt data with automatic date sor        wait = WebDriverWait(driver, 25)
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
-        
-        # Give page additional time to stabilize
-        time.sleep(3)
-        
-        ticket_elements = driver.find_elements(
-            By.CSS_SELECTOR, 
-            "div.purchase-history_ticketsTable__D-i0e a.ticket-row_row__3-1Iv"
-        )Usage:
+of Lidl receipt data with automatic date sorting.
+
+Usage:
     from lidl_updater import initial_setup, update_data
     
     # For first-time setup or complete refresh
