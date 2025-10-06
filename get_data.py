@@ -336,7 +336,7 @@ def extract_basic_receipt_info(driver, url):
         if 't' in query_params:
             t_param = query_params['t'][0]
             # Extract date from t parameter (format: YYYYMMDD somewhere in the string)
-            date_match = re.search(r'(20\d{6})', t_param)
+            date_match = re.search(r'(20\d{2}(?:0[1-9]|1[0-2])(?:[012]\d|3[01]))', t_param)
             if date_match:
                 date_str = date_match.group(1)
                 # Convert YYYYMMDD to DD.MM.YYYY
