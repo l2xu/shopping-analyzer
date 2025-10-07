@@ -10,10 +10,10 @@ Requirements:
 
 Usage:
     from lidl_api_updater import initial_setup, update_data
-    
+
     # For first-time setup or complete refresh
     initial_setup()
-    
+
     # For monthly updates (adds only new data and sorts by date)
     update_data()
 """
@@ -48,15 +48,13 @@ class LidlConfig:
     PAGES_TO_CHECK = 3
 
     # Browser settings
-    SUPPORTED_BROWSERS = {
-        'firefox': 'Firefox',
-        'chrome': 'Chrome'
-    }
+    SUPPORTED_BROWSERS = {"firefox": "Firefox", "chrome": "Chrome"}
 
     # API settings
     DEFAULT_COUNTRY = "DE"
     DEFAULT_LANGUAGE = "de-DE"
     DEFAULT_PAGE_SIZE = 10
+
 
 def setup_and_test_session() -> Optional[requests.Session]:
     """
@@ -81,7 +79,7 @@ def setup_and_test_session() -> Optional[requests.Session]:
     return session
 
 
-def extract_browser_cookies(browser='firefox'):
+def extract_browser_cookies(browser="firefox"):
     """
     Extract authentication cookies from browser for Lidl website.
 
@@ -96,10 +94,10 @@ def extract_browser_cookies(browser='firefox'):
 
     try:
         # Load cookies from specified browser
-        if browser == 'firefox':
-            cookies = browser_cookie3.firefox(domain_name='lidl.de')
-        elif browser == 'chrome':
-            cookies = browser_cookie3.chrome(domain_name='lidl.de')
+        if browser == "firefox":
+            cookies = browser_cookie3.firefox(domain_name="lidl.de")
+        elif browser == "chrome":
+            cookies = browser_cookie3.chrome(domain_name="lidl.de")
         else:
             raise ValueError(f"Unbekannter Browser: {browser}")
 
@@ -107,15 +105,19 @@ def extract_browser_cookies(browser='firefox'):
         session = requests.Session()
 
         for cookie in cookies:
-            session.cookies.set_cookie(requests.cookies.create_cookie(
-                domain=cookie.domain,
-                name=cookie.name,
-                value=cookie.value,
-                secure=cookie.secure,
-                path=cookie.path
-            ))
+            session.cookies.set_cookie(
+                requests.cookies.create_cookie(
+                    domain=cookie.domain,
+                    name=cookie.name,
+                    value=cookie.value,
+                    secure=cookie.secure,
+                    path=cookie.path,
+                )
+            )
 
-        print(f"Erfolgreich {len(session.cookies)} Cookies aus {browser_name} extrahiert")
+        print(
+            f"Erfolgreich {len(session.cookies)} Cookies aus {browser_name} extrahiert"
+        )
         return session
 
     except Exception as e:
@@ -125,7 +127,6 @@ def extract_browser_cookies(browser='firefox'):
         print(f"1. {browser_name} läuft und du bei Lidl angemeldet bist")
         print("2. Die Lidl-Website (www.lidl.de) in {browser_name} geöffnet ist")
         raise CookieExtractionError(error_msg) from e
-
 
 
 def select_browser():
@@ -172,13 +173,15 @@ def test_api_connection(session: requests.Session) -> bool:
         # Test the tickets API endpoint
         response = session.get(
             f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page=1",
-            timeout=LidlConfig.DEFAULT_TIMEOUT
+            timeout=LidlConfig.DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
 
         data = response.json()
-        if 'items' in data and len(data['items']) > 0:
-            print(f"✓ API-Verbindung erfolgreich! {data['totalCount']} Kassenbons gefunden")
+        if "items" in data and len(data["items"]) > 0:
+            print(
+                f"✓ API-Verbindung erfolgreich! {data['totalCount']} Kassenbons gefunden"
+            )
             return True
         else:
             print("⚠ API-Antwort enthält keine Kassenbons")
@@ -187,8 +190,12 @@ def test_api_connection(session: requests.Session) -> bool:
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
             print("✗ API-Verbindung fehlgeschlagen: Nicht autorisiert (401)")
-            print("Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist.")
-            print("Öffne www.lidl.de im Browser und melde dich an, bevor du das Programm ausführst.")
+            print(
+                "Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist."
+            )
+            print(
+                "Öffne www.lidl.de im Browser und melde dich an, bevor du das Programm ausführst."
+            )
         else:
             print(f"✗ API-Verbindungsfehler ({e.response.status_code}): {e}")
         return False
@@ -200,7 +207,9 @@ def test_api_connection(session: requests.Session) -> bool:
         return False
 
 
-def get_tickets_page(session: requests.Session, page: int = 1) -> Optional[Dict[str, Any]]:
+def get_tickets_page(
+    session: requests.Session, page: int = 1
+) -> Optional[Dict[str, Any]]:
     """
     Fetch tickets for a specific page using the API.
 
@@ -214,7 +223,7 @@ def get_tickets_page(session: requests.Session, page: int = 1) -> Optional[Dict[
     try:
         response = session.get(
             f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page={page}",
-            timeout=LidlConfig.DEFAULT_TIMEOUT
+            timeout=LidlConfig.DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
 
@@ -224,10 +233,10 @@ def get_tickets_page(session: requests.Session, page: int = 1) -> Optional[Dict[
         if isinstance(data, list):
             # Direct array of tickets
             return {
-                'items': data,
-                'page': page,
-                'size': len(data),
-                'totalCount': len(data)
+                "items": data,
+                "page": page,
+                "size": len(data),
+                "totalCount": len(data),
             }
         elif isinstance(data, dict):
             # Structured response with metadata
@@ -239,7 +248,9 @@ def get_tickets_page(session: requests.Session, page: int = 1) -> Optional[Dict[
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
             print(f"✗ Nicht autorisiert beim Abrufen der Tickets-Seite {page}")
-            print("Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist.")
+            print(
+                "Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist."
+            )
         else:
             print(f"✗ HTTP-Fehler beim Abrufen der Tickets-Seite {page}: {e}")
         return None
@@ -251,7 +262,9 @@ def get_tickets_page(session: requests.Session, page: int = 1) -> Optional[Dict[
         return None
 
 
-def get_receipt_details_and_html(session: requests.Session, receipt_id: str) -> Optional[Dict[str, Any]]:
+def get_receipt_details_and_html(
+    session: requests.Session, receipt_id: str
+) -> Optional[Dict[str, Any]]:
     """
     Fetch receipt details and HTML content for a specific receipt.
 
@@ -272,37 +285,41 @@ def get_receipt_details_and_html(session: requests.Session, receipt_id: str) -> 
         data = response.json()
 
         # Extract ticket data from the response
-        if 'ticket' in data:
-            ticket_data = data['ticket']
+        if "ticket" in data:
+            ticket_data = data["ticket"]
         else:
             ticket_data = data
 
         # Extract basic info
-        receipt_date = ticket_data['date'][:10].replace('-', '.')
-        total_amount = ticket_data['totalAmount']
+        receipt_date = ticket_data["date"][:10].replace("-", ".")
+        total_amount = ticket_data["totalAmount"]
 
         # Handle store info (could be nested or direct)
-        if isinstance(ticket_data.get('store'), dict):
-            store = ticket_data['store'].get('name', 'Unknown')
+        if isinstance(ticket_data.get("store"), dict):
+            store = ticket_data["store"].get("name", "Unknown")
         else:
-            store = ticket_data.get('store', 'Unknown')
+            store = ticket_data.get("store", "Unknown")
 
         # Get HTML content
-        html_content = ticket_data.get('htmlPrintedReceipt', '')
+        html_content = ticket_data.get("htmlPrintedReceipt", "")
 
         if not html_content:
             print(f"  Kein HTML-Inhalt gefunden für receipt_id: {receipt_id}")
             return None
 
         # Parse the HTML receipt from the API
-        parsed_data = parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, store)
+        parsed_data = parse_receipt_html(
+            html_content, receipt_id, receipt_date, total_amount, store
+        )
 
         return parsed_data
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
             print(f"  Nicht autorisiert beim Abrufen von receipt_id: {receipt_id}")
-            print("  Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist.")
+            print(
+                "  Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist."
+            )
         else:
             print(f"  HTTP-Fehler beim Abrufen: {e}")
         return None
@@ -317,34 +334,34 @@ def get_receipt_details_and_html(session: requests.Session, receipt_id: str) -> 
 def extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store):
     """Extract basic receipt information using the exact logic from the provided code snippet."""
     receipt_data = {
-        'id': receipt_id,
-        'purchase_date': receipt_date,
-        'total_price': None,  # Final amount actually paid
-        'total_price_no_saving': None,  # Sum of all items without any savings
-        'saved_amount': None,  # Regular savings (Preisvorteil, Rabatt)
-        'saved_pfand': None,  # Pfand/deposit returns
-        'lidlplus_saved_amount': None,  # Lidl Plus savings
-        'store': store,
-        'items': []
+        "id": receipt_id,
+        "purchase_date": receipt_date,
+        "total_price": None,  # Final amount actually paid
+        "total_price_no_saving": None,  # Sum of all items without any savings
+        "saved_amount": None,  # Regular savings (Preisvorteil, Rabatt)
+        "saved_pfand": None,  # Pfand/deposit returns
+        "lidlplus_saved_amount": None,  # Lidl Plus savings
+        "store": store,
+        "items": [],
     }
 
     # Extract total price (amount to pay - "zu zahlen")
     try:
         # Method 1: Look for "zu zahlen" line and extract the amount from the same line
-        purchase_summary_elements = soup.find_all(id=re.compile(r'^purchase_summary_'))
+        purchase_summary_elements = soup.find_all(id=re.compile(r"^purchase_summary_"))
         for element in purchase_summary_elements:
             element_text = element.get_text().strip()
             if "zu zahlen" in element_text:
                 # Find all spans with bold class in the same parent to get the amount
                 parent = element.parent
-                amount_spans = parent.find_all('span', class_='css_bold')
+                amount_spans = parent.find_all("span", class_="css_bold")
                 for span in amount_spans:
                     span_text = span.get_text().strip()
                     # Look for a price pattern (digits,digits)
-                    if re.match(r'^\d+,\d+$', span_text):
-                        receipt_data['total_price'] = span_text
+                    if re.match(r"^\d+,\d+$", span_text):
+                        receipt_data["total_price"] = span_text
                         break
-                if receipt_data['total_price']:
+                if receipt_data["total_price"]:
                     break
     except:
         # Fallback: Try the old method from purchase_tender_information_5
@@ -353,7 +370,7 @@ def extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store):
             if total_element:
                 parts = total_element.get_text().strip().split()
                 if len(parts) >= 2:
-                    receipt_data['total_price'] = parts[-2]
+                    receipt_data["total_price"] = parts[-2]
         except:
             pass
 
@@ -363,33 +380,35 @@ def extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store):
 
         # Get the purchase list text and search for discount lines
         try:
-            purchase_list = soup.find('span', class_='purchase_list')
+            purchase_list = soup.find("span", class_="purchase_list")
             if purchase_list:
                 purchase_text = purchase_list.get_text()
 
                 # Find all discount lines and extract the amounts
-                lines = purchase_text.split('\n')
+                lines = purchase_text.split("\n")
                 for line in lines:
                     # Include "Preisvorteil" lines
                     if "Preisvorteil" in line and "Gesamter" not in line:
-                        amount_match = re.search(r'-(\d+,\d+)', line)
+                        amount_match = re.search(r"-(\d+,\d+)", line)
                         if amount_match:
                             amount_str = amount_match.group(1)
-                            amount_float = float(amount_str.replace(',', '.'))
+                            amount_float = float(amount_str.replace(",", "."))
                             total_regular_savings += amount_float
                     # Include "Rabatt" lines but exclude "Lidl Plus Rabatt"
                     elif "Rabatt" in line and "Lidl Plus Rabatt" not in line:
-                        amount_match = re.search(r'-(\d+,\d+)', line)
+                        amount_match = re.search(r"-(\d+,\d+)", line)
                         if amount_match:
                             amount_str = amount_match.group(1)
-                            amount_float = float(amount_str.replace(',', '.'))
+                            amount_float = float(amount_str.replace(",", "."))
                             total_regular_savings += amount_float
         except:
             pass
 
         # Set the saved_amount if we found any regular savings
         if total_regular_savings > 0:
-            receipt_data['saved_amount'] = f"{total_regular_savings:.2f}".replace('.', ',')
+            receipt_data["saved_amount"] = f"{total_regular_savings:.2f}".replace(
+                ".", ","
+            )
     except:
         pass
 
@@ -398,22 +417,22 @@ def extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store):
         # Look for the "Mit Lidl Plus" box that shows "X,XX EUR gespart"
         try:
             # First, try to find the specific "EUR gespart" text in the VAT info section
-            vat_info_elements = soup.find_all('span', class_='vat_info')
+            vat_info_elements = soup.find_all("span", class_="vat_info")
             for element in vat_info_elements:
                 element_text = element.get_text().strip()
                 if "EUR gespart" in element_text:
                     # Extract the amount before "EUR gespart"
-                    amount_match = re.search(r'(\d+,\d+)\s+EUR gespart', element_text)
+                    amount_match = re.search(r"(\d+,\d+)\s+EUR gespart", element_text)
                     if amount_match:
-                        receipt_data['lidlplus_saved_amount'] = amount_match.group(1)
+                        receipt_data["lidlplus_saved_amount"] = amount_match.group(1)
                         break
         except:
             # Fallback: search in the entire page for "EUR gespart"
             try:
                 page_text = soup.get_text()
-                gespart_match = re.search(r'(\d+,\d+)\s+EUR gespart', page_text)
+                gespart_match = re.search(r"(\d+,\d+)\s+EUR gespart", page_text)
                 if gespart_match:
-                    receipt_data['lidlplus_saved_amount'] = gespart_match.group(1)
+                    receipt_data["lidlplus_saved_amount"] = gespart_match.group(1)
             except:
                 pass
     except:
@@ -427,7 +446,7 @@ def extract_receipt_items_from_html(soup):
     items = []
     try:
         # Find all article spans (they contain data-art-* attributes)
-        article_spans = soup.find_all('span', class_='article')
+        article_spans = soup.find_all("span", class_="article")
 
         if not article_spans:
             print(f"Keine Artikel-Spans gefunden")
@@ -437,8 +456,8 @@ def extract_receipt_items_from_html(soup):
         # This handles cases where same article ID appears with different descriptions
         items_by_id_and_desc = {}
         for span in article_spans:
-            art_id = span.get('data-art-id')
-            art_description = span.get('data-art-description', '')
+            art_id = span.get("data-art-id")
+            art_description = span.get("data-art-description", "")
             if art_id and art_description:
                 key = f"{art_id}_{art_description}"
                 if key not in items_by_id_and_desc:
@@ -446,15 +465,15 @@ def extract_receipt_items_from_html(soup):
                 items_by_id_and_desc[key].append(span)
 
         # Process each article
-        for (art_id_and_desc, spans) in items_by_id_and_desc.items():
+        for art_id_and_desc, spans in items_by_id_and_desc.items():
             try:
                 # Get the first span (should contain all the data attributes)
                 main_span = spans[0]
 
                 # Extract item details from data attributes
-                art_description = main_span.get('data-art-description', '')
-                art_quantity = main_span.get('data-art-quantity', '1')
-                unit_price = main_span.get('data-unit-price', '')
+                art_description = main_span.get("data-art-description", "")
+                art_quantity = main_span.get("data-art-quantity", "1")
+                unit_price = main_span.get("data-unit-price", "")
 
                 if not art_description or not unit_price:
                     continue
@@ -463,16 +482,16 @@ def extract_receipt_items_from_html(soup):
                 total_price_text = unit_price  # Default to unit price
                 for span in spans:
                     # Check if this span has the css_bold class (indicating it's the total price)
-                    span_class = span.get('class', [])
-                    if 'css_bold' in span_class:
+                    span_class = span.get("class", [])
+                    if "css_bold" in span_class:
                         span_text = span.get_text().strip()
                         # Look for price pattern (digits,digits)
-                        if re.match(r'^\d+,\d+$', span_text):
+                        if re.match(r"^\d+,\d+$", span_text):
                             # Check if this is likely the total price (not unit price)
                             try:
-                                price_val = float(span_text.replace(',', '.'))
-                                unit_val = float(unit_price.replace(',', '.'))
-                                qty_val = float(art_quantity.replace(',', '.'))
+                                price_val = float(span_text.replace(",", "."))
+                                unit_val = float(unit_price.replace(",", "."))
+                                qty_val = float(art_quantity.replace(",", "."))
 
                                 # If this matches the expected total, use it
                                 expected_total = unit_val * qty_val
@@ -483,30 +502,32 @@ def extract_receipt_items_from_html(soup):
                                 pass
 
                 # Determine unit (kg or stk) from text content
-                unit = 'stk'
+                unit = "stk"
                 for span in spans:
                     span_text = span.get_text()
-                    if 'kg' in span_text or 'EUR/kg' in span_text:
-                        unit = 'kg'
+                    if "kg" in span_text or "EUR/kg" in span_text:
+                        unit = "kg"
                         break
 
                 # Convert values for calculation
                 try:
-                    quantity = float(art_quantity.replace(',', '.'))
+                    quantity = float(art_quantity.replace(",", "."))
                 except (ValueError, AttributeError):
                     quantity = 1.0
 
                 try:
-                    price = float(unit_price.replace(',', '.'))
+                    price = float(unit_price.replace(",", "."))
                 except (ValueError, AttributeError):
                     price = 0.0
 
-                items.append({
-                    'name': art_description,
-                    'price': unit_price,
-                    'quantity': art_quantity,
-                    'unit': unit
-                })
+                items.append(
+                    {
+                        "name": art_description,
+                        "price": unit_price,
+                        "quantity": art_quantity,
+                        "unit": unit,
+                    }
+                )
 
             except Exception as e:
                 print(f"Fehler beim Extrahieren eines Artikels: {e}")
@@ -524,43 +545,45 @@ def extract_savings_info(soup, receipt_data):
         total_regular_savings = 0.0
 
         # Get the purchase list text and search for discount lines
-        purchase_list = soup.find('span', class_='purchase_list')
+        purchase_list = soup.find("span", class_="purchase_list")
         if purchase_list:
             purchase_text = purchase_list.get_text()
 
             # Find all discount lines and extract the amounts
-            lines = purchase_text.split('\n')
+            lines = purchase_text.split("\n")
             for line in lines:
                 # Include "Preisvorteil" lines
                 if "Preisvorteil" in line and "Gesamter" not in line:
-                    amount_match = re.search(r'-(\d+,\d+)', line)
+                    amount_match = re.search(r"-(\d+,\d+)", line)
                     if amount_match:
                         amount_str = amount_match.group(1)
-                        amount_float = float(amount_str.replace(',', '.'))
+                        amount_float = float(amount_str.replace(",", "."))
                         total_regular_savings += amount_float
                 # Include "Rabatt" lines but exclude "Lidl Plus Rabatt"
                 elif "Rabatt" in line and "Lidl Plus Rabatt" not in line:
-                    amount_match = re.search(r'-(\d+,\d+)', line)
+                    amount_match = re.search(r"-(\d+,\d+)", line)
                     if amount_match:
                         amount_str = amount_match.group(1)
-                        amount_float = float(amount_str.replace(',', '.'))
+                        amount_float = float(amount_str.replace(",", "."))
                         total_regular_savings += amount_float
 
         # Set the saved_amount if we found any regular savings
         if total_regular_savings > 0:
-            receipt_data['saved_amount'] = f"{total_regular_savings:.2f}".replace('.', ',')
+            receipt_data["saved_amount"] = f"{total_regular_savings:.2f}".replace(
+                ".", ","
+            )
     except Exception as e:
         print(f"Fehler beim Extrahieren der regulären Ersparnisse: {e}")
 
     # Extract Lidl Plus savings
     try:
         # Look for the "Mit Lidl Plus" box that shows "X,XX EUR gespart"
-        vat_info = soup.find('span', class_='vat_info')
+        vat_info = soup.find("span", class_="vat_info")
         if vat_info:
             vat_text = vat_info.get_text()
-            gespart_match = re.search(r'(\d+,\d+)\s+EUR gespart', vat_text)
+            gespart_match = re.search(r"(\d+,\d+)\s+EUR gespart", vat_text)
             if gespart_match:
-                receipt_data['lidlplus_saved_amount'] = gespart_match.group(1)
+                receipt_data["lidlplus_saved_amount"] = gespart_match.group(1)
     except Exception as e:
         print(f"Fehler beim Extrahieren der Lidl Plus Ersparnisse: {e}")
 
@@ -571,16 +594,16 @@ def load_existing_receipts() -> tuple[set[str], list[Dict[str, Any]]]:
         return set(), []
 
     try:
-        with open(LidlConfig.RECEIPTS_JSON_FILE, 'r', encoding='utf-8') as file:
+        with open(LidlConfig.RECEIPTS_JSON_FILE, "r", encoding="utf-8") as file:
             receipts = json.load(file)
         # Handle both old format (with 'url') and new format (with 'id')
         existing_ids = set()
         for receipt in receipts:
-            if 'id' in receipt:
-                existing_ids.add(receipt['id'])
-            elif 'url' in receipt:
+            if "id" in receipt:
+                existing_ids.add(receipt["id"])
+            elif "url" in receipt:
                 # For backward compatibility with old format
-                existing_ids.add(receipt['url'])
+                existing_ids.add(receipt["url"])
         return existing_ids, receipts
     except (json.JSONDecodeError, KeyError) as e:
         print(f"Warning: Error loading existing receipts: {e}")
@@ -589,7 +612,7 @@ def load_existing_receipts() -> tuple[set[str], list[Dict[str, Any]]]:
 
 def save_receipts_to_json(receipts):
     """Save all receipts to JSON file."""
-    with open(LidlConfig.RECEIPTS_JSON_FILE, 'w', encoding='utf-8') as file:
+    with open(LidlConfig.RECEIPTS_JSON_FILE, "w", encoding="utf-8") as file:
         json.dump(receipts, file, ensure_ascii=False, indent=2)
 
 
@@ -601,8 +624,8 @@ def add_receipt_to_json(receipt_data):
     receipt_updated = False
     for i, existing_receipt in enumerate(existing_receipts):
         # Check both 'id' and 'url' fields for compatibility
-        existing_key = existing_receipt.get('id') or existing_receipt.get('url', '')
-        new_key = receipt_data.get('id') or receipt_data.get('url', '')
+        existing_key = existing_receipt.get("id") or existing_receipt.get("url", "")
+        new_key = receipt_data.get("id") or receipt_data.get("url", "")
 
         if existing_key == new_key:
             existing_receipts[i] = receipt_data
@@ -616,15 +639,17 @@ def add_receipt_to_json(receipt_data):
     save_receipts_to_json(existing_receipts)
 
     action = "aktualisiert" if receipt_updated else "hinzugefügt"
-    print(f"Kassenbon {action}: {receipt_data['purchase_date']} - {receipt_data['total_price']}")
+    print(
+        f"Kassenbon {action}: {receipt_data['purchase_date']} - {receipt_data['total_price']}"
+    )
 
 
 def sort_receipts_by_date():
     """Sort all receipts in the JSON file by date (newest first)."""
     _, receipts = load_existing_receipts()
-    
+
     def get_date_key(receipt):
-        date_str = receipt.get('purchase_date')
+        date_str = receipt.get("purchase_date")
         if not date_str:
             return datetime.min
         try:
@@ -634,7 +659,7 @@ def sort_receipts_by_date():
                 return datetime.strptime(date_str, "%d.%m.%Y")
             except ValueError:
                 return datetime.min
-    
+
     sorted_receipts = sorted(receipts, key=get_date_key, reverse=True)
     save_receipts_to_json(sorted_receipts)
     return len(sorted_receipts)
@@ -654,42 +679,48 @@ def parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, sto
     Returns:
         dict: Parsed receipt data
     """
-    soup = BeautifulSoup(html_content, 'html.parser')
+    soup = BeautifulSoup(html_content, "html.parser")
 
     # Extract basic receipt info using the exact logic from the provided code snippet
-    receipt_data = extract_basic_receipt_info_from_html(soup, receipt_id, receipt_date, store)
+    receipt_data = extract_basic_receipt_info_from_html(
+        soup, receipt_id, receipt_date, store
+    )
 
     # Extract items using the exact logic from the provided code snippet
-    receipt_data['items'] = extract_receipt_items_from_html(soup)
+    receipt_data["items"] = extract_receipt_items_from_html(soup)
 
     # Calculate total from items (this is the price without any savings)
     total_from_items = 0.0
-    for item in receipt_data.get('items', []):
+    for item in receipt_data.get("items", []):
         try:
-            item_price = float(item.get('price', '0').replace(',', '.'))
-            item_qty = float(item.get('quantity', '1').replace(',', '.'))
+            item_price = float(item.get("price", "0").replace(",", "."))
+            item_qty = float(item.get("quantity", "1").replace(",", "."))
             total_from_items += item_price * item_qty
         except (ValueError, AttributeError):
             pass
 
     if total_from_items > 0:
-        receipt_data['total_price_no_saving'] = f"{total_from_items:.2f}".replace('.', ',')
+        receipt_data["total_price_no_saving"] = f"{total_from_items:.2f}".replace(
+            ".", ","
+        )
 
         # Extract savings to calculate final paid price
         total_savings = 0.0
 
         # Add regular savings (Preisvorteil, Rabatt)
-        if receipt_data.get('saved_amount'):
+        if receipt_data.get("saved_amount"):
             try:
-                saved_amount = float(receipt_data['saved_amount'].replace(',', '.'))
+                saved_amount = float(receipt_data["saved_amount"].replace(",", "."))
                 total_savings += saved_amount
             except (ValueError, AttributeError):
                 pass
 
         # Add Lidl Plus savings
-        if receipt_data.get('lidlplus_saved_amount'):
+        if receipt_data.get("lidlplus_saved_amount"):
             try:
-                lidl_savings = float(receipt_data['lidlplus_saved_amount'].replace(',', '.'))
+                lidl_savings = float(
+                    receipt_data["lidlplus_saved_amount"].replace(",", ".")
+                )
                 total_savings += lidl_savings
             except (ValueError, AttributeError):
                 pass
@@ -697,27 +728,33 @@ def parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, sto
         # Extract pfand savings from HTML
         pfand_savings = 0.0
         try:
-            purchase_list = soup.find('span', class_='purchase_list')
+            purchase_list = soup.find("span", class_="purchase_list")
             if purchase_list:
                 purchase_text = purchase_list.get_text()
 
                 # Look for Pfandrückgabe lines (format: "Pfandrückgabe" followed by amount)
                 # Use more specific regex to avoid matching calculation lines
-                pfand_matches = re.findall(r'Pfandrückgabe\s*(-?\d+,\d+)', purchase_text)
+                pfand_matches = re.findall(
+                    r"Pfandrückgabe\s*(-?\d+,\d+)", purchase_text
+                )
                 for match in pfand_matches:
                     try:
-                        pfand_val = float(match.replace(',', '.'))
-                        pfand_savings += abs(pfand_val)  # Take absolute value since it's negative in receipt
+                        pfand_val = float(match.replace(",", "."))
+                        pfand_savings += abs(
+                            pfand_val
+                        )  # Take absolute value since it's negative in receipt
                     except (ValueError, AttributeError):
                         pass
 
                 # If no direct Pfandrückgabe amount found, look for calculation lines
                 if pfand_savings == 0:
-                    pfand_calc_matches = re.findall(r'(-?\d+)\s*x\s*(-?\d+,\d+)', purchase_text)
+                    pfand_calc_matches = re.findall(
+                        r"(-?\d+)\s*x\s*(-?\d+,\d+)", purchase_text
+                    )
                     for qty_match, price_match in pfand_calc_matches:
                         try:
                             qty = float(qty_match)
-                            price = float(price_match.replace(',', '.'))
+                            price = float(price_match.replace(",", "."))
                             calculated_pfand = abs(qty * price)  # Take absolute value
                             pfand_savings += calculated_pfand
                         except (ValueError, AttributeError):
@@ -726,13 +763,13 @@ def parse_receipt_html(html_content, receipt_id, receipt_date, total_amount, sto
             pass
 
         if pfand_savings > 0:
-            receipt_data['saved_pfand'] = f"{pfand_savings:.2f}".replace('.', ',')
+            receipt_data["saved_pfand"] = f"{pfand_savings:.2f}".replace(".", ",")
             total_savings += pfand_savings
 
         # Calculate final paid price
         final_paid = total_from_items - total_savings
         if final_paid > 0:
-            receipt_data['total_price'] = f"{final_paid:.2f}".replace('.', ',')
+            receipt_data["total_price"] = f"{final_paid:.2f}".replace(".", ",")
 
     return receipt_data
 
@@ -756,10 +793,10 @@ def collect_all_receipt_ids(session):
         # Get tickets for current page
         tickets_data = get_tickets_page(session, page)
 
-        if not tickets_data or 'items' not in tickets_data:
-                        break
-                
-        tickets = tickets_data['items']
+        if not tickets_data or "items" not in tickets_data:
+            break
+
+        tickets = tickets_data["items"]
 
         if not tickets:
             break
@@ -767,13 +804,13 @@ def collect_all_receipt_ids(session):
         # Extract receipt IDs from tickets (only those with HTML documents)
         for ticket in tickets:
             if isinstance(ticket, dict):
-                if 'ticket' in ticket:
-                    ticket_data = ticket['ticket']
-                    receipt_id = ticket_data['id']
-                    has_html = ticket_data.get('hasHtmlDocument', False)
+                if "ticket" in ticket:
+                    ticket_data = ticket["ticket"]
+                    receipt_id = ticket_data["id"]
+                    has_html = ticket_data.get("hasHtmlDocument", False)
                 else:
-                    receipt_id = ticket.get('id', '')
-                    has_html = ticket.get('hasHtmlDocument', False)
+                    receipt_id = ticket.get("id", "")
+                    has_html = ticket.get("hasHtmlDocument", False)
 
                 if receipt_id and has_html:
                     all_receipt_ids.append(receipt_id)
@@ -781,8 +818,8 @@ def collect_all_receipt_ids(session):
         page += 1
 
         # Check if we have more pages
-        total_count = tickets_data.get('totalCount', 0)
-        page_size = tickets_data.get('size', 10)
+        total_count = tickets_data.get("totalCount", 0)
+        page_size = tickets_data.get("size", 10)
         total_pages = (total_count + page_size - 1) // page_size
 
         if page > total_pages:
@@ -826,7 +863,7 @@ def process_all_tickets(session):
         # Get receipt details and HTML
         receipt_data = get_receipt_details_and_html(session, receipt_id)
 
-        if receipt_data and receipt_data['items']:
+        if receipt_data and receipt_data["items"]:
             add_receipt_to_json(receipt_data)
             processed_count += 1
             print(f"✓ Verarbeitet: {len(receipt_data['items'])} Artikel")
@@ -890,23 +927,23 @@ def update_data():
     for page in range(1, LidlConfig.PAGES_TO_CHECK + 1):
         tickets_data = get_tickets_page(session, page)
 
-        if not tickets_data or 'items' not in tickets_data:
+        if not tickets_data or "items" not in tickets_data:
             break
 
-        tickets = tickets_data['items']
+        tickets = tickets_data["items"]
         if not tickets:
             break
 
         # Extract receipt IDs from tickets (only those with HTML documents)
         for ticket in tickets:
             if isinstance(ticket, dict):
-                if 'ticket' in ticket:
-                    ticket_data = ticket['ticket']
-                    receipt_id = ticket_data['id']
-                    has_html = ticket_data.get('hasHtmlDocument', False)
+                if "ticket" in ticket:
+                    ticket_data = ticket["ticket"]
+                    receipt_id = ticket_data["id"]
+                    has_html = ticket_data.get("hasHtmlDocument", False)
                 else:
-                    receipt_id = ticket.get('id', '')
-                    has_html = ticket.get('hasHtmlDocument', False)
+                    receipt_id = ticket.get("id", "")
+                    has_html = ticket.get("hasHtmlDocument", False)
 
                 if receipt_id and has_html:
                     recent_receipt_ids.append(receipt_id)
@@ -928,7 +965,7 @@ def update_data():
 
         receipt_data = get_receipt_details_and_html(session, receipt_id)
 
-        if receipt_data and receipt_data['items']:
+        if receipt_data and receipt_data["items"]:
             add_receipt_to_json(receipt_data)
             processed_count += 1
             print(f"✓ Hinzugefügt: {len(receipt_data['items'])} Artikel")
@@ -965,7 +1002,7 @@ def main():
     while True:
         try:
             choice = input("\nWähle eine Option (1-3): ").strip()
-            
+
             if choice == "1":
                 print("\nStarte Initial Setup...")
                 success = initial_setup()
@@ -974,7 +1011,7 @@ def main():
                 else:
                     print("✗ Initial Setup fehlgeschlagen!")
                 break
-                
+
             elif choice == "2":
                 print("\nStarte Update...")
                 success = update_data()
@@ -983,14 +1020,14 @@ def main():
                 else:
                     print("✗ Update fehlgeschlagen!")
                 break
-                
+
             elif choice == "3":
                 print("Auf Wiedersehen!")
                 break
-                
+
             else:
                 print("Ungültige Eingabe. Bitte wähle 1, 2 oder 3.")
-                
+
         except KeyboardInterrupt:
             print("\n\nProgramm unterbrochen.")
             break
@@ -1004,12 +1041,12 @@ if __name__ == "__main__":
     Entry point for the script. Provides a menu interface for users.
     """
     import sys
-    
+
     # Check for command line arguments for backwards compatibility
     if len(sys.argv) > 1:
-        if sys.argv[1] == 'initial':
+        if sys.argv[1] == "initial":
             initial_setup()
-        elif sys.argv[1] == 'update':
+        elif sys.argv[1] == "update":
             update_data()
         else:
             print(f"Unknown argument: {sys.argv[1]}")
