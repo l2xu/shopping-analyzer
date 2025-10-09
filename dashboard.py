@@ -213,6 +213,9 @@ if data:
         if items_data:
             items_df = pd.DataFrame(items_data)
             
+            # Filter out Pfand items (deposit bottles/cans)
+            items_df = items_df[~items_df['name'].str.contains('Pfand', case=False, na=False)]
+            
             if view_mode == "Menge":
                 # Group by item name and sum quantities, keeping track of units
                 grouped = items_df.groupby('name').agg({
