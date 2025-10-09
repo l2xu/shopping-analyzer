@@ -337,6 +337,19 @@ def extract_basic_receipt_info(driver, url):
                 month = date_str[4:6]
                 day = date_str[6:8]
                 receipt_data['purchase_date'] = f"{day}.{month}.{year}"
+                
+                # Check if the date is before February 2023
+                try:
+                    receipt_date = datetime.strptime(f"{year}-{month}-{day}", "%Y-%m-%d")
+                    cutoff_date = datetime(2023, 2, 1)
+                    if receipt_date < cutoff_date:
+                        print(f"\n=== STOPP: Kassenbon vom {day}.{month}.{year} gefunden ===")
+                        print("Kassenbons vor Februar 2023 sind auf der Website nicht mehr verfügbar.")
+                        print("Die Datenextraktion wird beendet.")
+                        receipt_data['stop_processing'] = True
+                        return receipt_data
+                except ValueError:
+                    pass
     except:
         pass
 
@@ -527,8 +540,13 @@ def extract_receipt_data(driver, url):
         if not wait_for_receipt_page(driver, wait):
             return None
         
-        # Extract basic info and items
+        # Extract basic info and check for stop condition
         receipt_data = extract_basic_receipt_info(driver, url)
+        
+        # Check if we should stop processing
+        if receipt_data and receipt_data.get('stop_processing'):
+            return receipt_data
+        
         receipt_data['url'] = url
         receipt_data['items'] = extract_receipt_items(driver)
         
@@ -580,6 +598,11 @@ def process_receipts_from_pages(driver, existing_urls, stop_on_duplicate=False):
             
             receipt_data = extract_receipt_data(driver, link)
             if receipt_data:
+                # Check if we should stop processing due to old receipt
+                if receipt_data.get('stop_processing'):
+                    print("Verarbeitung gestoppt aufgrund alter Kassenbons.")
+                    return processed_count, skipped_count, page_count, True
+                
                 add_receipt_to_json(receipt_data)
                 existing_urls.add(link)
                 processed_count += 1
@@ -620,7 +643,7 @@ def initial_setup():
         existing_urls, _ = load_existing_receipts()
         print(f"Bereits vorhandene Kassenbons: {len(_)}")
         
-        processed_count, skipped_count, page_count, _ = process_receipts_from_pages(driver, existing_urls)
+        processed_count, skipped_count, page_count, stopped_early = process_receipts_from_pages(driver, existing_urls)
         
         # Final sort
         total_receipts = sort_receipts_by_date()
@@ -631,6 +654,8 @@ def initial_setup():
         print(f"Neue Kassenbons extrahiert: {processed_count}")
         print(f"Übersprungene Kassenbons: {skipped_count}")
         print(f"Gesamte Kassenbons in Datei: {total_receipts}")
+        if stopped_early:
+            print("Info: Verarbeitung wurde vorzeitig beendet (Kassenbons früher als Februar 2023 können leider nicht extrahiert werden).")
         
         return True
         
