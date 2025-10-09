@@ -3,16 +3,9 @@ Lidl Receipt Data Updater
 =========================
 
 This module provides functions to handle both initial setup and incremental updates
-of Lidl receipt data with automatic date sor        wait = WebDriverWait(driver, 25)
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.purchase-history_ticketsTable__D-i0e")))
-        
-        # Give page additional time to stabilize
-        time.sleep(3)
-        
-        ticket_elements = driver.find_elements(
-            By.CSS_SELECTOR, 
-            "div.purchase-history_ticketsTable__D-i0e a.ticket-row_row__3-1Iv"
-        )Usage:
+of Lidl receipt data with automatic date sorting.
+
+Usage:
     from lidl_updater import initial_setup, update_data
     
     # For first-time setup or complete refresh
@@ -331,7 +324,8 @@ def extract_basic_receipt_info_de(driver, url):
         query_params = parse_qs(parsed_url.query)
         if 't' in query_params:
             t_param = query_params['t'][0]
-            date_match = re.search(r'(20\d{6})', t_param)
+            # Extract date from t parameter (format: YYYYMMDD somewhere in the string)
+            date_match = re.search(r'(20\d{2}(?:0[1-9]|1[0-2])(?:[012]\d|3[01]))', t_param)
             if date_match:
                 date_str = date_match.group(1)
                 receipt_data['purchase_date'] = f"{date_str[6:8]}.{date_str[4:6]}.{date_str[:4]}"

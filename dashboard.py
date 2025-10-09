@@ -150,6 +150,23 @@ if data:
     df['saved_amount'] = df['saved_amount'].apply(to_float)
     df['lidlplus_saved_amount'] = df['lidlplus_saved_amount'].apply(to_float) if 'lidlplus_saved_amount' in df.columns else 0.0
 
+    # --- Data Filtering ---
+    # Filter out entries with null/zero total_price or empty items array
+    initial_count = len(df)
+    
+    # Remove entries where total_price is null, 0, or NaN
+    df = df[df['total_price'] > 0]
+    
+    # Remove entries where items array is empty or null
+    df = df[df['items'].notna()]  # Remove null items
+    df = df[df['items'].apply(lambda x: isinstance(x, list) and len(x) > 0)]  # Remove empty arrays
+    
+    filtered_count = len(df)
+    filtered_out = initial_count - filtered_count
+    
+    if filtered_out > 0:
+        st.info(f"Info: Kassenbons ({filtered_out}) wurden herausgefiltert. Entweder hatten sie keinen Gesamtpreis oder keine Artikel. Kassenbons vor Februar 2023 sind möglicherweise betroffen.")
+
     # --- Streamlit Dashboard ---
     st.set_page_config(layout="wide", page_title=T["page_title"], page_icon="🛒")
 
