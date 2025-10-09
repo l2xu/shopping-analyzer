@@ -414,7 +414,7 @@ def extract_basic_receipt_info_nl(driver, url):
         for line in lines:
             if ("In prijs verlaagd" in line or "Actieprijs" in line or "2 voor actie" in line) or \
                (prompts["discount_keyword"] in line and prompts["lidl_plus_discount_keyword"] not in line):
-                amount_match = re.search(r'-(\d+,\d+)', line)
+                date_match = re.search(r'(20\d{2}(?:0[1-9]|1[0-2])(?:[012]\d|3[01]))', t_param)
                 if amount_match:
                     total_regular_savings += float(amount_match.group(1).replace(',', '.'))
         if total_regular_savings > 0:
