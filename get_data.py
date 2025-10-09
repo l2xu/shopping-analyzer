@@ -367,7 +367,7 @@ def extract_basic_receipt_info(driver, url):
                 for span in amount_spans:
                     span_text = span.text.strip()
                     # Look for a price pattern (digits,digits)
-                    if re.match(r'^\d+,\d+$', span_text):
+                    if re.match(r'^-?\d+,\d+$', span_text):
                         receipt_data['total_price'] = span_text
                         break
                 if receipt_data['total_price']:

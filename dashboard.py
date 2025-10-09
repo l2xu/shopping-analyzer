@@ -53,7 +53,6 @@ if data:
     initial_count = len(df)
     
     # Remove entries where total_price is null, 0, or NaN
-    df = df[df['total_price'] > 0]
     
     # Remove entries where items array is empty or null
     df = df[df['items'].notna()]  # Remove null items
