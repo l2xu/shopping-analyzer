@@ -30,6 +30,9 @@ from bs4 import BeautifulSoup
 import browser_cookie3
 
 
+
+
+
 # Configuration
 class LidlConfig:
     """Configuration constants for Lidl API integration."""
@@ -126,8 +129,6 @@ def extract_browser_cookies(browser="firefox"):
         print("Bitte stelle sicher, dass:")
         print(f"1. {browser_name} läuft und du bei Lidl angemeldet bist")
         print("2. Die Lidl-Website (www.lidl.de) in {browser_name} geöffnet ist")
-        raise CookieExtractionError(error_msg) from e
-
 
 def select_browser():
     """
@@ -536,56 +537,6 @@ def extract_receipt_items_from_html(soup):
         print(f"Artikel nicht gefunden: {e}")
 
     return items
-
-
-def extract_savings_info(soup, receipt_data):
-    """Extract savings information from the receipt HTML."""
-    # Extract saved amount (only "Preisvorteil" and "Rabatt" lines, excluding "Lidl Plus Rabatt")
-    try:
-        total_regular_savings = 0.0
-
-        # Get the purchase list text and search for discount lines
-        purchase_list = soup.find("span", class_="purchase_list")
-        if purchase_list:
-            purchase_text = purchase_list.get_text()
-
-            # Find all discount lines and extract the amounts
-            lines = purchase_text.split("\n")
-            for line in lines:
-                # Include "Preisvorteil" lines
-                if "Preisvorteil" in line and "Gesamter" not in line:
-                    amount_match = re.search(r"-(\d+,\d+)", line)
-                    if amount_match:
-                        amount_str = amount_match.group(1)
-                        amount_float = float(amount_str.replace(",", "."))
-                        total_regular_savings += amount_float
-                # Include "Rabatt" lines but exclude "Lidl Plus Rabatt"
-                elif "Rabatt" in line and "Lidl Plus Rabatt" not in line:
-                    amount_match = re.search(r"-(\d+,\d+)", line)
-                    if amount_match:
-                        amount_str = amount_match.group(1)
-                        amount_float = float(amount_str.replace(",", "."))
-                        total_regular_savings += amount_float
-
-        # Set the saved_amount if we found any regular savings
-        if total_regular_savings > 0:
-            receipt_data["saved_amount"] = f"{total_regular_savings:.2f}".replace(
-                ".", ","
-            )
-    except Exception as e:
-        print(f"Fehler beim Extrahieren der regulären Ersparnisse: {e}")
-
-    # Extract Lidl Plus savings
-    try:
-        # Look for the "Mit Lidl Plus" box that shows "X,XX EUR gespart"
-        vat_info = soup.find("span", class_="vat_info")
-        if vat_info:
-            vat_text = vat_info.get_text()
-            gespart_match = re.search(r"(\d+,\d+)\s+EUR gespart", vat_text)
-            if gespart_match:
-                receipt_data["lidlplus_saved_amount"] = gespart_match.group(1)
-    except Exception as e:
-        print(f"Fehler beim Extrahieren der Lidl Plus Ersparnisse: {e}")
 
 
 def load_existing_receipts() -> tuple[set[str], list[Dict[str, Any]]]:
