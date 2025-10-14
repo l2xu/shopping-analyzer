@@ -6,17 +6,12 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
 
 ---
 
-> [!IMPORTANT] > **📹 YouTube Video Update Notice**
->
+> [!Important] 
+>**📹 YouTube Video Update Notice**
+> 
 > If you came here from a YouTube video, please note: The setup process has **changed** from the video instructions. This tool now uses an **API** instead of web scraping, making it more reliable and faster.
 >
 > **Please follow the instructions in this README below** instead of the video tutorial, as the old web scraping method is no longer used.
-
-> [!IMPORTANT] > **📹 YouTube Video Update-Hinweis**
->
-> Falls Sie über ein YouTube-Video hierher gekommen sind: Der Setup-Prozess hat sich im Vergleich zum Video **geändert**. Dieses Tool verwendet jetzt eine  **API** anstelle von Web Scraping, wodurch es zuverlässiger und schneller ist.
->
-> **Bitte folgen Sie den Anweisungen in dieser README unten** anstatt dem Video-Tutorial, da die alte Web-Scraping-Methode nicht mehr verwendet wird.
 
 ---
 
