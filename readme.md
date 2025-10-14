@@ -19,7 +19,8 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
 ### Prerequisites
 
 - [Python 3.7 or higher](https://www.python.org/downloads/)
-- [Google Chrome browser](https://www.google.com/chrome/) installed
+- [Google Chrome browser](https://www.google.com/chrome/) or [Mozilla Firefox browser](https://www.mozilla.org/firefox/) installed
+  - You need to be logged in to your Lidl Plus Account in the browser of your choice
 - Lidl Plus account with online purchase history
 
 ### Important Limitation
@@ -73,13 +74,17 @@ Now the project is successfully set up and you can start extracting data from yo
 
 ### Usage
 
-**Step 1: Run the data extraction script**
+**Step 1: Login to Lidl Plus in Firefox or Chrome**
+
+- [Lidl Login](https://www.lidl.de/mla/)
+
+**Step 2: Run the data extraction script**
 
 ```bash
 python get_data.py
 ```
 
-**Step 2: Choose your operation mode**
+**Step 3: Choose your operation mode**
 
 You'll see a menu with options:
 
@@ -87,17 +92,16 @@ You'll see a menu with options:
 2. Update Data - Add only new receipts
 3. Exit
 
-**Step 3: Login to your Lidl+ account**
+**Step 4: Login to your Lidl+ account**
 
-Enter your Lidl+ email address and password when prompted. Don't worry if the password doesn't appear on screen - this is normal and intentional for security.
+Choose which browser you used for **Step 1**:
 
-**Step 4: Automated data extraction**
+1. Firefox
+2. Chrome
 
-Google Chrome will open automatically and the program will:
+**Step 5: Automated data extraction**
 
-- Log into your Lidl+ account
-- Extract data from all your receipts
-- Save the data automatically
+The program will automatically extract data from all your receipts (after 14.02.2022)
 
 ⚠️ **Important**: This process may take some time, so grab a coffee or take a short walk! If the process crashes for any reason, simply run it again - the program will resume from where it left off.
 
@@ -132,7 +136,8 @@ This will start a web-based dashboard accessible at `http://localhost:8501` wher
 ### Voraussetzungen
 
 - [Python 3.7 oder höher](https://www.python.org/downloads/)
-- [Google Chrome Browser](https://www.google.com/chrome/) installiert
+- [Google Chrome browser](https://www.google.com/chrome/) oder [Mozilla Firefox Browser](https://www.mozilla.org/firefox/) installiert
+  - In dem Browser deiner Wahl in dein Lidl-Plus Konto eingeloggt
 - Lidl Plus Konto mit Online-Kaufverlauf
 
 ### Wichtige Einschränkung
@@ -190,13 +195,17 @@ Jetzt ist das Projekt erfolgreich aufgesetzt und Sie können anfangen, Ihre Date
 
 ### Verwendung
 
-**Schritt 1: Datenextraktions-Skript starten**
+**Schritt 1: In Firefox oder Chrome in Lidl-Plus einloggen**
+
+- [Lidl Login](https://www.lidl.de/mla/)
+
+**Schritt 2: Datenextraktions-Skript starten**
 
 ```bash
 python get_data.py
 ```
 
-**Schritt 2: Betriebsmodus wählen**
+**Schritt 3: Betriebsmodus wählen**
 
 Sie haben die Wahl zwischen:
 
@@ -206,18 +215,16 @@ Sie haben die Wahl zwischen:
 
 Wählen Sie "1" für das Initial Setup und bestätigen Sie mit der Enter-Taste.
 
-**Schritt 3: Mit Lidl+ Account anmelden**
+**Schritt 4: Mit Lidl+ Account anmelden**
 
-Geben Sie zuerst Ihre E-Mail-Adresse ein und dann Ihr Passwort. Bestätigen Sie beides mit Enter.
-**Wichtig**: Wundern Sie sich nicht, wenn das Passwort nicht angezeigt wird - das ist normal und gewollt aus Sicherheitsgründen.
+Wählen Sie aus welchen Browser Sie für **Schritt 1** verwendet haben:
 
-**Schritt 4: Automatische Datenextraktion**
+1. Firefox
+2. Chrome
 
-Google Chrome öffnet sich automatisch und das Programm wird:
+**Schritt 5: Automatische Datenextraktion**
 
-- Sich in Ihren Lidl+ Account einloggen
-- Die Daten aus allen Kassenbons extrahieren
-- Alles automatisch abspeichern
+Nun wird das Programm automatisiert die Daten all Ihrer Kassenbons (nach dem 14.02.2022) extrahieren
 
 ⚠️ **Wichtiger Hinweis**: Dieser Prozess kann etwas dauern - holen Sie sich einen Kaffee oder gehen Sie eine kleine Runde spazieren! Sollte der Prozess aus irgendeinem Grund abstürzen, ist das kein Problem. Wiederholen Sie das Ganze einfach - das Programm springt schnell wieder zu der Stelle, wo es aufgehört hat.
 
