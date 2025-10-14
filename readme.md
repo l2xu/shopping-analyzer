@@ -6,6 +6,20 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
 
 ---
 
+> [!IMPORTANT] > **📹 YouTube Video Update Notice**
+>
+> If you came here from a YouTube video, please note: The setup process has **changed** from the video instructions. This tool now uses an **API** instead of web scraping, making it more reliable and faster.
+>
+> **Please follow the instructions in this README below** instead of the video tutorial, as the old web scraping method is no longer used.
+
+> [!IMPORTANT] > **📹 YouTube Video Update-Hinweis**
+>
+> Falls Sie über ein YouTube-Video hierher gekommen sind: Der Setup-Prozess hat sich im Vergleich zum Video **geändert**. Dieses Tool verwendet jetzt eine  **API** anstelle von Web Scraping, wodurch es zuverlässiger und schneller ist.
+>
+> **Bitte folgen Sie den Anweisungen in dieser README unten** anstatt dem Video-Tutorial, da die alte Web-Scraping-Methode nicht mehr verwendet wird.
+
+---
+
 ## 🇬🇧 English
 
 ### Features
@@ -20,7 +34,6 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
 
 - [Python 3.7 or higher](https://www.python.org/downloads/)
 - [Google Chrome browser](https://www.google.com/chrome/) or [Mozilla Firefox browser](https://www.mozilla.org/firefox/) installed
-  - You need to be logged in to your Lidl Plus Account in the browser of your choice
 - Lidl Plus account with online purchase history
 
 ### Important Limitation
@@ -74,9 +87,11 @@ Now the project is successfully set up and you can start extracting data from yo
 
 ### Usage
 
-**Step 1: Login to Lidl Plus in Firefox or Chrome**
+**Step 1: Login to Lidl Plus in Firefox or Chrome and keep the browser open**
 
 - [Lidl Login](https://www.lidl.de/mla/)
+
+⚠️ **Note for macOS users**: Chrome may not work due to keychain access restrictions. If you encounter a "key for cookie decryption" error, please use Firefox instead, which works more reliably on macOS.
 
 **Step 2: Run the data extraction script**
 
@@ -137,7 +152,6 @@ This will start a web-based dashboard accessible at `http://localhost:8501` wher
 
 - [Python 3.7 oder höher](https://www.python.org/downloads/)
 - [Google Chrome browser](https://www.google.com/chrome/) oder [Mozilla Firefox Browser](https://www.mozilla.org/firefox/) installiert
-  - In dem Browser deiner Wahl in dein Lidl-Plus Konto eingeloggt
 - Lidl Plus Konto mit Online-Kaufverlauf
 
 ### Wichtige Einschränkung
@@ -195,9 +209,11 @@ Jetzt ist das Projekt erfolgreich aufgesetzt und Sie können anfangen, Ihre Date
 
 ### Verwendung
 
-**Schritt 1: In Firefox oder Chrome in Lidl-Plus einloggen**
+**Schritt 1: Im Browser (Firefox oder Chrome) bei Lidl+Plus anmelden und den Browser geöffnet lassen**
 
 - [Lidl Login](https://www.lidl.de/mla/)
+
+⚠️ **Hinweis für macOS-Nutzer**: Chrome funktioniert möglicherweise nicht aufgrund von Schlüsselbund-Zugriffsbeschränkungen. Falls ein "key for cookie decryption"-Fehler auftritt, verwenden Sie bitte Firefox, welcher auf macOS zuverlässiger funktioniert.
 
 **Schritt 2: Datenextraktions-Skript starten**
 
