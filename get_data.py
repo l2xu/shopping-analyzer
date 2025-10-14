@@ -1,16 +1,5 @@
 """
 Lidl Receipt Data Updater - API Version
-=======================================
-
-This module provides functions to extract Lidl receipt data using the official API
-with authentication tokens extracted from Google Chrome or Firefox browser.
-
-Requirements:
-- User must be logged into Lidl website in Google Chrome or Firefox browser
-
-Usage:
-    from lidl_api_updater import initial_setup, update_data
-
     # For first-time setup or complete refresh
     initial_setup()
 

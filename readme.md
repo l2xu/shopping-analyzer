@@ -23,6 +23,10 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
   - You need to be logged in to your Lidl Plus Account in the browser of your choice
 - Lidl Plus account with online purchase history
 
+### Important Limitation
+
+⚠️ **Data Availability**: Receipt data on the Lidl website is only available from **February 2023 onwards**. The script will automatically stop when it encounters receipts older than February 2023, as this data is no longer accessible on the Lidl website.
+
 ### Installation
 
 1. **Clone or download this repository**
@@ -135,6 +139,10 @@ This will start a web-based dashboard accessible at `http://localhost:8501` wher
 - [Google Chrome browser](https://www.google.com/chrome/) oder [Mozilla Firefox Browser](https://www.mozilla.org/firefox/) installiert
   - In dem Browser deiner Wahl in dein Lidl-Plus Konto eingeloggt
 - Lidl Plus Konto mit Online-Kaufverlauf
+
+### Wichtige Einschränkung
+
+⚠️ **Datenverfügbarkeit**: Kassenbondaten sind auf der Lidl-Website nur ab **Februar 2023** verfügbar. Das Skript stoppt automatisch, wenn es auf ältere Kassenbons stößt, da diese Daten nicht mehr auf der Lidl-Website zugänglich sind.
 
 ### Installation
 
