@@ -20,14 +20,13 @@ import browser_cookie3
 
 
 
-
-
 # Configuration
 class LidlConfig:
     """Configuration constants for Lidl API integration."""
 
     # File paths
     RECEIPTS_JSON_FILE = "lidl_receipts.json"
+    COOKIES_JSON_FILE = "lidl_cookies.json"
 
     # API endpoints
     LIDL_BASE_URL = "https://www.lidl.de"
@@ -56,11 +55,16 @@ def setup_and_test_session() -> Optional[requests.Session]:
     Returns:
         requests.Session: Authenticated session if successful, None otherwise
     """
-    # Let user select browser
-    browser = select_browser()
+    # Let user select authentication method
+    auth_method = select_auth_method()
 
-    # Extract cookies from selected browser
-    session = extract_browser_cookies(browser)
+    # Extract cookies based on selected method
+    if auth_method == "file":
+        session = load_cookies_from_file()
+    else:
+        # auth_method is the browser name ('firefox' or 'chrome')
+        session = extract_browser_cookies(auth_method)
+    
     if not session:
         return None
 
@@ -69,6 +73,88 @@ def setup_and_test_session() -> Optional[requests.Session]:
         return None
 
     return session
+
+
+def load_cookies_from_file(file_path: Optional[str] = None) -> Optional[requests.Session]:
+    """
+    Load authentication cookies from a JSON file (e.g., exported from EditThisCookie).
+    
+    The JSON file should contain an array of cookie objects with fields like:
+    - domain, name, value, path, secure, httpOnly, etc.
+    
+    Args:
+        file_path: Path to the cookie JSON file. If None, uses default from config.
+    
+    Returns:
+        requests.Session: Session with loaded cookies, or None if error
+    """
+    if file_path is None:
+        file_path = LidlConfig.COOKIES_JSON_FILE
+    
+    print(f"Lade Cookies aus Datei: {file_path}...")
+    
+    try:
+        # Check if file exists
+        if not os.path.exists(file_path):
+            print(f"✗ Cookie-Datei nicht gefunden: {file_path}")
+            print(f"\nBitte erstelle eine Datei '{file_path}' mit deinen Cookies.")
+            print("Du kannst Cookies exportieren mit Browser-Erweiterungen wie:")
+            print("  - EditThisCookie (exportiere als JSON)")
+            print("  - Cookie-Editor")
+            print("\nDie Datei sollte ein JSON-Array von Cookie-Objekten enthalten.")
+            return None
+        
+        # Load the JSON file
+        with open(file_path, 'r', encoding='utf-8') as f:
+            cookies_data = json.load(f)
+        
+        # Handle both array and object formats
+        if isinstance(cookies_data, dict) and 'cookies' in cookies_data:
+            cookies_list = cookies_data['cookies']
+        elif isinstance(cookies_data, list):
+            cookies_list = cookies_data
+        else:
+            print("✗ Ungültiges Cookie-Dateiformat. Erwarte ein JSON-Array oder Objekt mit 'cookies'-Feld.")
+            return None
+        
+        # Create a requests session
+        session = requests.Session()
+        
+        # Add cookies to session
+        cookie_count = 0
+        for cookie_data in cookies_list:
+            # Skip cookies not for lidl.de domain
+            domain = cookie_data.get('domain', '')
+            if 'lidl.de' not in domain:
+                continue
+            
+            # Create cookie with available fields
+            session.cookies.set_cookie(
+                requests.cookies.create_cookie(
+                    domain=cookie_data.get('domain', ''),
+                    name=cookie_data.get('name', ''),
+                    value=cookie_data.get('value', ''),
+                    path=cookie_data.get('path', '/'),
+                    secure=cookie_data.get('secure', False),
+                    expires=cookie_data.get('expirationDate', None),
+                )
+            )
+            cookie_count += 1
+        
+        if cookie_count == 0:
+            print("✗ Keine Cookies für lidl.de in der Datei gefunden.")
+            return None
+        
+        print(f"✓ Erfolgreich {cookie_count} Cookies aus Datei geladen")
+        return session
+    
+    except json.JSONDecodeError as e:
+        print(f"✗ Fehler beim Parsen der Cookie-Datei: {e}")
+        print("Bitte stelle sicher, dass die Datei gültiges JSON enthält.")
+        return None
+    except Exception as e:
+        print(f"✗ Fehler beim Laden der Cookie-Datei: {e}")
+        return None
 
 
 def extract_browser_cookies(browser="firefox"):
@@ -119,8 +205,41 @@ def extract_browser_cookies(browser="firefox"):
         print(f"1. {browser_name} läuft und du bei Lidl angemeldet bist")
         print("2. Die Lidl-Website (www.lidl.de) in {browser_name} geöffnet ist")
 
+
+def select_auth_method():
+    """
+    Let user select authentication method (browser extraction or file).
+
+    Returns:
+        str: 'file' for cookie file, or browser name ('firefox' or 'chrome')
+    """
+    print("\n=== Authentifizierungs-Methode ===")
+    print("Wie möchten Sie sich authentifizieren?")
+    print("1. Firefox Browser (muss geöffnet sein)")
+    print("2. Chrome Browser (muss geöffnet sein)")
+    print("3. Cookie-Datei (muss cookies enthalten)")
+
+    while True:
+        try:
+            choice = input("\nWähle eine Option (1-3): ").strip()
+
+            if choice == "1":
+                return "firefox"
+            elif choice == "2":
+                return "chrome"
+            elif choice == "3":
+                return "file"
+            else:
+                print("Ungültige Eingabe. Bitte wähle 1, 2 oder 3.")
+
+        except KeyboardInterrupt:
+            print("\n\nAuthentifizierungs-Auswahl abgebrochen.")
+            return "firefox"  # Default fallback
+
+
 def select_browser():
     """
+    DEPRECATED: Use select_auth_method() instead.
     Let user select browser for cookie extraction.
 
     Returns:
@@ -799,6 +918,7 @@ def process_all_tickets(session):
     # Process each new receipt
     for i, receipt_id in enumerate(new_receipt_ids, 1):
         print(f"Verarbeite Kassenbon {i}/{len(new_receipt_ids)}: {receipt_id}")
+        
 
         # Get receipt details and HTML
         receipt_data = get_receipt_details_and_html(session, receipt_id)
