@@ -6,7 +6,8 @@ Ein Python-Tool zum automatischen Extrahieren und Verwalten von Lidl-Kassenbonda
 
 ---
 
-> [!Important] > **📹 YouTube Video Update Notice**
+> [!Important] 
+> **📹 YouTube Video Update Notice**
 >
 > If you came here from a YouTube video, please note: The setup process has **changed** from the video instructions. This tool now uses an **API** instead of web scraping, making it more reliable and faster.
 >
@@ -83,7 +84,8 @@ Now the project is successfully set up and you can start extracting data from yo
 
 **Step 1: Choose your authentication method**
 
-> [!WARNING] > **🔐 Security Notice**: This tool requires access to your Lidl Plus account cookies to function. Please be aware of the following security considerations:
+> [!WARNING] 
+> **🔐 Security Notice**: This tool requires access to your Lidl Plus account cookies to function. Please be aware of the following security considerations:
 >
 > - **Cookie files contain sensitive authentication data** that can grant access to your Lidl Plus account
 > - **Never share your `lidl_cookies.json` file** with others or commit it to version control (Git)
@@ -100,7 +102,8 @@ You have two options for authentication:
 
 **Option B: Manual Cookie File**
 
-> [!CAUTION] > **⚠️ Security Risk**: Manually exporting and storing cookies in a file poses additional security risks:
+> [!CAUTION] 
+> **⚠️ Security Risk**: Manually exporting and storing cookies in a file poses additional security risks:
 >
 > - The `lidl_cookies.json` file will contain your authentication tokens in plain text
 > - Anyone with access to this file can access your Lidl Plus account
@@ -133,7 +136,7 @@ Choose how you want to authenticate:
 2. Chrome (automatic cookie extraction)
 3. Cookie File (manual - using `lidl_cookies.json`)
 
-If you chose option 3, make sure you have created a `lidl_cookies.json` file first (see [COOKIE_GUIDE.md](./COOKIE_GUIDE.md)).
+If you chose option 3, make sure you have created a `lidl_cookies.json` file first.
 
 **Step 5: Automated data extraction**
 
@@ -232,7 +235,8 @@ Jetzt ist das Projekt erfolgreich aufgesetzt und Sie können anfangen, Ihre Date
 
 **Schritt 1: Authentifizierungsmethode wählen**
 
-> [!WARNING] > **🔐 Sicherheitshinweis**: Dieses Tool benötigt Zugriff auf Ihre Lidl Plus Account-Cookies, um zu funktionieren. Bitte beachten Sie folgende Sicherheitsaspekte:
+> [!WARNING] 
+> **🔐 Sicherheitshinweis**: Dieses Tool benötigt Zugriff auf Ihre Lidl Plus Account-Cookies, um zu funktionieren. Bitte beachten Sie folgende Sicherheitsaspekte:
 >
 > - **Cookie-Dateien enthalten sensible Authentifizierungsdaten**, die Zugriff auf Ihr Lidl Plus Konto gewähren können
 > - **Teilen Sie Ihre `lidl_cookies.json` Datei niemals** mit anderen oder laden Sie sie in eine Versionsverwaltung (Git) hoch
@@ -249,7 +253,8 @@ Sie haben zwei Möglichkeiten zur Authentifizierung:
 
 **Option B: Manuelle Cookie-Datei (Alternative)**
 
-> [!CAUTION] > **⚠️ Sicherheitsrisiko**: Das manuelle Exportieren und Speichern von Cookies in einer Datei birgt zusätzliche Sicherheitsrisiken:
+> [!CAUTION] 
+> **⚠️ Sicherheitsrisiko**: Das manuelle Exportieren und Speichern von Cookies in einer Datei birgt zusätzliche Sicherheitsrisiken:
 >
 > - Die `lidl_cookies.json` Datei enthält Ihre Authentifizierungstokens im Klartext
 > - Jeder mit Zugriff auf diese Datei kann auf Ihr Lidl Plus Konto zugreifen
@@ -284,7 +289,7 @@ Wählen Sie aus, wie Sie sich authentifizieren möchten:
 2. Chrome (automatische Cookie-Extraktion)
 3. Cookie-Datei (manuell - verwendet `lidl_cookies.json`)
 
-Wenn Sie Option 3 wählen, stellen Sie sicher, dass Sie zuerst eine `lidl_cookies.json` Datei erstellt haben (siehe [COOKIE_GUIDE.md](./COOKIE_GUIDE.md)).
+Wenn Sie Option 3 wählen, stellen Sie sicher, dass Sie zuerst eine `lidl_cookies.json` Datei erstellt haben.
 
 **Schritt 5: Automatische Datenextraktion**
 
