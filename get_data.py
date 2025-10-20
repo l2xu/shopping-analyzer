@@ -866,10 +866,10 @@ def collect_all_receipt_ids(session):
                 if "ticket" in ticket:
                     ticket_data = ticket["ticket"]
                     receipt_id = ticket_data["id"]
-                    has_html = ticket_data.get("hasHtmlDocument", False)
+                    has_html = ticket_data.get("isHtml", False)
                 else:
                     receipt_id = ticket.get("id", "")
-                    has_html = ticket.get("hasHtmlDocument", False)
+                    has_html = ticket.get("isHtml", False)
 
                 if receipt_id and has_html:
                     all_receipt_ids.append(receipt_id)
@@ -1000,10 +1000,10 @@ def update_data():
                 if "ticket" in ticket:
                     ticket_data = ticket["ticket"]
                     receipt_id = ticket_data["id"]
-                    has_html = ticket_data.get("hasHtmlDocument", False)
+                    has_html = ticket_data.get("isHtml", False)
                 else:
                     receipt_id = ticket.get("id", "")
-                    has_html = ticket.get("hasHtmlDocument", False)
+                    has_html = ticket.get("isHtml", False)
 
                 if receipt_id and has_html:
                     recent_receipt_ids.append(receipt_id)
