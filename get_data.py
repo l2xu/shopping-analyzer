@@ -10,7 +10,7 @@ Usage:
     python get_data.py initial --browser firefox   # Non-interactive initial setup
     python get_data.py update --browser chromium   # Non-interactive update
     python get_data.py initial --cookies-file cookies.json  # Use cookie file
-    python get_data.py update --base-url https://www.lidl.bg --browser chromium  # Other country
+    python get_data.py update --country bg --browser chromium  # Bulgaria
 """
 
 import argparse
@@ -43,9 +43,9 @@ def create_parser() -> argparse.ArgumentParser:
             help="Path to cookies JSON file (non-interactive mode)",
         )
         subparser.add_argument(
-            "--base-url",
-            metavar="URL",
-            help="Base URL for Lidl API (e.g., https://www.lidl.bg for Bulgaria)",
+            "--country",
+            metavar="CODE",
+            help="Two-letter country code (e.g., 'de', 'bg', 'nl'). Default: de",
         )
 
     # Initial setup subcommand
@@ -67,9 +67,9 @@ def create_parser() -> argparse.ArgumentParser:
 
 def run_workflow(args: argparse.Namespace, workflow_func) -> bool:
     """Run a workflow with the appropriate auth method."""
-    # Set base URL if provided
-    if args.base_url:
-        LidlConfig.set_base_url(args.base_url)
+    # Set country if provided
+    if args.country:
+        LidlConfig.set_country(args.country)
 
     if args.browser:
         return workflow_func(auth_method=args.browser)

@@ -62,7 +62,7 @@ def test_api_connection(session: requests.Session) -> bool:
     try:
         # Test the tickets API endpoint
         response = session.get(
-            f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page=1",
+            f"{LidlConfig.get_tickets_url()}?country={LidlConfig.get_country_code()}&page=1",
             timeout=LidlConfig.DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
@@ -84,7 +84,7 @@ def test_api_connection(session: requests.Session) -> bool:
                 "Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist."
             )
             print(
-                "Öffne www.lidl.de im Browser und melde dich an, bevor du das Programm ausführst."
+                f"Öffne {LidlConfig.get_base_url()} im Browser und melde dich an, bevor du das Programm ausführst."
             )
         else:
             print(f"✗ API-Verbindungsfehler ({e.response.status_code}): {e}")

@@ -23,7 +23,7 @@ def get_tickets_page(
     """
     try:
         response = session.get(
-            f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page={page}",
+            f"{LidlConfig.get_tickets_url()}?country={LidlConfig.get_country_code()}&page={page}",
             timeout=LidlConfig.DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
@@ -77,8 +77,8 @@ def get_receipt_details_and_html(
         dict: Parsed receipt data or None if error
     """
     try:
-        url = LidlConfig.RECEIPT_API_URL.format(receipt_id=receipt_id)
-        full_url = f"{url}?country={LidlConfig.DEFAULT_COUNTRY}&languageCode={LidlConfig.DEFAULT_LANGUAGE}"
+        url = LidlConfig.get_receipt_url(receipt_id)
+        full_url = f"{url}?country={LidlConfig.get_country_code()}&languageCode={LidlConfig.get_language_code()}"
 
         response = session.get(full_url, timeout=LidlConfig.DEFAULT_TIMEOUT)
         response.raise_for_status()
