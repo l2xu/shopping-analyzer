@@ -19,7 +19,7 @@ class LidlConfig:
     PAGES_TO_CHECK = 3
 
     # Browser settings
-    SUPPORTED_BROWSERS = {"firefox": "Firefox", "chrome": "Chrome"}
+    SUPPORTED_BROWSERS = {"firefox": "Firefox", "chrome": "Chrome", "chromium": "Chromium"}
 
     # API settings
     DEFAULT_COUNTRY = "DE"
