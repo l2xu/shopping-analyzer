@@ -1,6 +1,7 @@
 """Update workflow for adding only new receipts."""
 
 import time
+from typing import Optional
 
 from config import LidlConfig
 from auth import setup_and_test_session
@@ -8,9 +9,17 @@ from api import get_tickets_page, get_receipt_details_and_html
 from storage import load_existing_receipts, add_receipt_to_json, sort_receipts_by_date
 
 
-def update_data() -> bool:
+def update_data(
+    auth_method: Optional[str] = None,
+    cookies_file: Optional[str] = None,
+) -> bool:
     """
     Add only new receipts and sort by date at the end.
+
+    Args:
+        auth_method: Authentication method - 'firefox', 'chrome', 'chromium', or 'file'.
+                     If None, prompts user interactively.
+        cookies_file: Path to cookies file (only used when auth_method is 'file').
 
     Returns:
         bool: True if successful, False otherwise
@@ -18,7 +27,7 @@ def update_data() -> bool:
     print("=== UPDATE: Füge neue Kassenbons hinzu ===")
 
     # Setup session with browser selection, cookie extraction, and API testing
-    session = setup_and_test_session()
+    session = setup_and_test_session(auth_method, cookies_file)
     if not session:
         return False
 
