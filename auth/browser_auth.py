@@ -25,6 +25,8 @@ def extract_browser_cookies(browser="firefox"):
             cookies = browser_cookie3.firefox(domain_name="lidl.de")
         elif browser == "chrome":
             cookies = browser_cookie3.chrome(domain_name="lidl.de")
+        elif browser == "chromium":
+            cookies = browser_cookie3.chromium(domain_name="lidl.de")
         else:
             raise ValueError(f"Unbekannter Browser: {browser}")
 

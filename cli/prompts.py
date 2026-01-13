@@ -6,26 +6,29 @@ def select_auth_method() -> str:
     Let user select authentication method (browser extraction or file).
 
     Returns:
-        str: 'file' for cookie file, or browser name ('firefox' or 'chrome')
+        str: 'file' for cookie file, or browser name ('firefox', 'chrome', or 'chromium')
     """
     print("\n=== Authentifizierungs-Methode ===")
     print("Wie möchten Sie sich authentifizieren?")
     print("1. Firefox Browser (muss geöffnet sein)")
     print("2. Chrome Browser (muss geöffnet sein)")
-    print("3. Cookie-Datei (muss cookies enthalten)")
+    print("3. Chromium Browser (muss geöffnet sein)")
+    print("4. Cookie-Datei (muss cookies enthalten)")
 
     while True:
         try:
-            choice = input("\nWähle eine Option (1-3): ").strip()
+            choice = input("\nWähle eine Option (1-4): ").strip()
 
             if choice == "1":
                 return "firefox"
             elif choice == "2":
                 return "chrome"
             elif choice == "3":
+                return "chromium"
+            elif choice == "4":
                 return "file"
             else:
-                print("Ungültige Eingabe. Bitte wähle 1, 2 oder 3.")
+                print("Ungültige Eingabe. Bitte wähle 1, 2, 3 oder 4.")
 
         except KeyboardInterrupt:
             print("\n\nAuthentifizierungs-Auswahl abgebrochen.")
