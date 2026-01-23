@@ -10,22 +10,31 @@ from .file_auth import load_cookies_from_file
 from .browser_auth import extract_browser_cookies
 
 
-def setup_and_test_session() -> Optional[requests.Session]:
+def setup_and_test_session(
+    auth_method: Optional[str] = None,
+    cookies_file: Optional[str] = None,
+) -> Optional[requests.Session]:
     """
     Common setup logic for both initial_setup and update_data.
     Handles browser selection, cookie extraction, and API testing.
 
+    Args:
+        auth_method: Authentication method - 'firefox', 'chrome', 'chromium', or 'file'.
+                     If None, prompts user interactively.
+        cookies_file: Path to cookies file (only used when auth_method is 'file').
+
     Returns:
         requests.Session: Authenticated session if successful, None otherwise
     """
-    # Let user select authentication method
-    auth_method = select_auth_method()
+    # Use provided auth_method or prompt user interactively
+    if auth_method is None:
+        auth_method = select_auth_method()
 
     # Extract cookies based on selected method
     if auth_method == "file":
-        session = load_cookies_from_file()
+        session = load_cookies_from_file(cookies_file)
     else:
-        # auth_method is the browser name ('firefox' or 'chrome')
+        # auth_method is the browser name ('firefox', 'chrome', or 'chromium')
         session = extract_browser_cookies(auth_method)
     
     if not session:
@@ -53,7 +62,7 @@ def test_api_connection(session: requests.Session) -> bool:
     try:
         # Test the tickets API endpoint
         response = session.get(
-            f"{LidlConfig.TICKETS_API_URL}?country={LidlConfig.DEFAULT_COUNTRY}&page=1",
+            f"{LidlConfig.get_tickets_url()}?country={LidlConfig.get_country_code()}&page=1",
             timeout=LidlConfig.DEFAULT_TIMEOUT,
         )
         response.raise_for_status()
@@ -75,7 +84,7 @@ def test_api_connection(session: requests.Session) -> bool:
                 "Bitte stelle sicher, dass du in deinem Browser bei Lidl angemeldet bist."
             )
             print(
-                "Öffne www.lidl.de im Browser und melde dich an, bevor du das Programm ausführst."
+                f"Öffne {LidlConfig.get_base_url()} im Browser und melde dich an, bevor du das Programm ausführst."
             )
         else:
             print(f"✗ API-Verbindungsfehler ({e.response.status_code}): {e}")

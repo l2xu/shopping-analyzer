@@ -11,22 +11,24 @@ def extract_browser_cookies(browser="firefox"):
     Extract authentication cookies from browser for Lidl website.
 
     Args:
-        browser: Browser to extract cookies from ('firefox' or 'chrome')
+        browser: Browser to extract cookies from ('firefox', 'chrome', or 'chromium')
 
     Returns:
         requests.Session: Session with Lidl authentication cookies
     """
     browser_name = LidlConfig.SUPPORTED_BROWSERS.get(browser, browser)
-    print(f"Extrahiere Cookies aus {browser_name} Browser...")
+    cookie_domain = LidlConfig.get_cookie_domain()
+
+    print(f"Extrahiere Cookies für {cookie_domain} aus {browser_name} Browser...")
 
     try:
         # Load cookies from specified browser
         if browser == "firefox":
-            cookies = browser_cookie3.firefox(domain_name="lidl.de")
+            cookies = browser_cookie3.firefox(domain_name=cookie_domain)
         elif browser == "chrome":
-            cookies = browser_cookie3.chrome(domain_name="lidl.de")
+            cookies = browser_cookie3.chrome(domain_name=cookie_domain)
         elif browser == "chromium":
-            cookies = browser_cookie3.chromium(domain_name="lidl.de")
+            cookies = browser_cookie3.chromium(domain_name=cookie_domain)
         else:
             raise ValueError(f"Unbekannter Browser: {browser}")
 
@@ -54,5 +56,5 @@ def extract_browser_cookies(browser="firefox"):
         print(error_msg)
         print("Bitte stelle sicher, dass:")
         print(f"1. {browser_name} läuft und du bei Lidl angemeldet bist")
-        print("2. Die Lidl-Website (www.lidl.de) in {browser_name} geöffnet ist")
+        print(f"2. Die Lidl-Website (www.{cookie_domain}) in {browser_name} geöffnet ist")
         return None
