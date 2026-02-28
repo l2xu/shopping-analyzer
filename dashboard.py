@@ -47,6 +47,11 @@ if data:
     df['total_price'] = df['total_price'].apply(to_float)
     df['saved_amount'] = df['saved_amount'].apply(to_float)
     df['lidlplus_saved_amount'] = df['lidlplus_saved_amount'].apply(to_float) if 'lidlplus_saved_amount' in df.columns else 0.0
+    # Handle sticker discounts (RABATT X%) if present
+    if 'sticker_discount_amount' in df.columns:
+        df['sticker_discount_amount'] = df['sticker_discount_amount'].apply(to_float)
+    else:
+        df['sticker_discount_amount'] = 0.0
 
     # --- Data Filtering ---
     # Filter out entries with null/zero total_price or empty items array
@@ -108,6 +113,8 @@ if data:
     total_receipts = len(filtered_df)
     total_spent = filtered_df['total_price'].sum()
     total_saved = filtered_df['saved_amount'].sum()
+    # Sticker discounts (separate from regular 'saved_amount')
+    sticker_saved = filtered_df['sticker_discount_amount'].sum() if 'sticker_discount_amount' in filtered_df.columns else 0.0
     
     # Handle Lidl Plus savings if available
     if 'lidlplus_saved_amount' in filtered_df.columns:
@@ -135,6 +142,13 @@ if data:
     regular_percentage = (total_saved / total_spent * 100) if total_spent > 0 else 0
     col1.metric("Reguläre Rabatte gespart", f"€{total_saved:,.2f}")
     col2.metric("Reguläre Sparquote", f"{regular_percentage:.1f}%")
+
+    # Fourth row: Sticker discounts (RABATT X%)
+    st.markdown("##### Sticker Rabatte (RABATT X%)")
+    col1, col2 = st.columns(2)
+    sticker_percentage = (sticker_saved / total_spent * 100) if total_spent > 0 else 0
+    col1.metric("Sticker Rabatte gespart", f"€{sticker_saved:,.2f}")
+    col2.metric("Sticker Sparquote", f"{sticker_percentage:.1f}%")
 
     st.markdown("---")
 

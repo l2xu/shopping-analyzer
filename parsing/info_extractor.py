@@ -15,6 +15,8 @@ def extract_basic_receipt_info_from_html(
         "total_price": None,  # Final amount actually paid
         "total_price_no_saving": None,  # Sum of all items without any savings
         "saved_amount": None,  # Regular savings (Preisvorteil, Rabatt)
+        "sticker_discount_amount": None,  # RABATT X% sticker monetary amount
+        "sticker_discount_pct": [],
         "saved_pfand": None,  # Pfand/deposit returns
         "lidlplus_saved_amount": None,  # Lidl Plus savings
         "store": store,
@@ -62,21 +64,49 @@ def extract_basic_receipt_info_from_html(
 
                 # Find all discount lines and extract the amounts
                 lines = purchase_text.split("\n")
+                # Regex to find monetary amount like -0,20 or - 0.20 or 0,20
+                amount_regex = re.compile(r"-?\s*(\d+[\.,]\d{2})")
+                pct_regex = re.compile(r"rabatt\s*(\d{1,3})\s*%")
                 for line in lines:
-                    # Include "Preisvorteil" lines
-                    if "Preisvorteil" in line and "Gesamter" not in line:
-                        amount_match = re.search(r"-(\d+,\d+)", line)
+                    line_stripped = line.strip()
+                    line_lower = line_stripped.lower()
+
+                    # Include "Preisvorteil" lines (exclude summary lines)
+                    if "preisvorteil" in line_lower and "gesamter" not in line_lower:
+                        amount_match = amount_regex.search(line_stripped)
                         if amount_match:
                             amount_str = amount_match.group(1)
                             amount_float = float(amount_str.replace(",", "."))
                             total_regular_savings += amount_float
-                    # Include "Rabatt" lines but exclude "Lidl Plus Rabatt"
-                    elif "Rabatt" in line and "Lidl Plus Rabatt" not in line:
-                        amount_match = re.search(r"-(\d+,\d+)", line)
+
+                    # Exclude Lidl Plus Rabatt explicitly
+                    elif "rabatt" in line_lower and "lidl plus rabatt" not in line_lower:
+                        # Check for percent sticker like "RABATT 20%"
+                        pct_match = pct_regex.search(line_lower)
+                        amount_match = amount_regex.search(line_stripped)
+
+                        if pct_match:
+                            try:
+                                pct_val = int(pct_match.group(1))
+                                # record the percent (keep as int)
+                                receipt_data.setdefault("sticker_discount_pct", []).append(pct_val)
+                            except ValueError:
+                                pass
+
+                        # If a monetary amount is present on the same line, treat as sticker monetary saving
                         if amount_match:
                             amount_str = amount_match.group(1)
-                            amount_float = float(amount_str.replace(",", "."))
-                            total_regular_savings += amount_float
+                            try:
+                                amount_float = float(amount_str.replace(",", "."))
+                                # accumulate into regular savings as well for backward compatibility
+                                total_regular_savings += amount_float
+                                # also accumulate into sticker-specific total
+                                # use a temp var to collect sticker amounts
+                                if receipt_data.get("sticker_discount_amount") is None:
+                                    receipt_data["sticker_discount_amount"] = 0.0
+                                receipt_data["sticker_discount_amount"] += amount_float
+                            except (ValueError, AttributeError):
+                                pass
         except:
             pass
 

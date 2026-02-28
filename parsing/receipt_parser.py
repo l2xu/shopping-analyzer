@@ -70,6 +70,19 @@ def parse_receipt_html(
             except (ValueError, AttributeError):
                 pass
 
+        # Add sticker discounts (RABATT X%) if present
+        if receipt_data.get("sticker_discount_amount"):
+            try:
+                sd = receipt_data["sticker_discount_amount"]
+                # handle stored float or string with comma
+                if isinstance(sd, str):
+                    sd_val = float(sd.replace(",", "."))
+                else:
+                    sd_val = float(sd)
+                total_savings += sd_val
+            except (ValueError, TypeError, AttributeError):
+                pass
+
         # Extract pfand savings from HTML
         pfand_savings = 0.0
         try:
