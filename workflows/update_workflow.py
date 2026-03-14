@@ -7,6 +7,7 @@ from config import LidlConfig
 from auth import setup_and_test_session
 from api import get_tickets_page, get_receipt_details_and_html
 from storage import load_existing_receipts, add_receipt_to_json, sort_receipts_by_date
+from .progress_display import ReceiptProgressDisplay, ProgressState
 
 
 def update_data(
@@ -69,20 +70,64 @@ def update_data(
 
     # Process new receipts
     processed_count = 0
+    skipped_count = 0
+    error_count = 0
+    total_items = 0
+    progress = ReceiptProgressDisplay()
+    total_new = len(new_receipt_ids)
+    current_receipt = "-"
+
+    progress.render(
+        ProgressState(
+            current=0,
+            total=total_new,
+            added=processed_count,
+            skipped=skipped_count,
+            errors=error_count,
+            items=total_items,
+            current_receipt=current_receipt,
+        )
+    )
 
     for i, receipt_id in enumerate(new_receipt_ids, 1):
-        print(f"Verarbeite neuen Kassenbon {i}/{len(new_receipt_ids)}: {receipt_id}")
+        current_receipt = receipt_id
+        progress.render(
+            ProgressState(
+                current=i - 1,
+                total=total_new,
+                added=processed_count,
+                skipped=skipped_count,
+                errors=error_count,
+                items=total_items,
+                current_receipt=current_receipt,
+            )
+        )
 
         receipt_data = get_receipt_details_and_html(session, receipt_id)
 
         if receipt_data and receipt_data["items"]:
-            add_receipt_to_json(receipt_data)
+            add_receipt_to_json(receipt_data, verbose=False)
             processed_count += 1
-            print(f"✓ Hinzugefügt: {len(receipt_data['items'])} Artikel")
+            total_items += len(receipt_data["items"])
         else:
-            print("⚠ Fehler beim Verarbeiten")
+            skipped_count += 1
+            error_count += 1
+
+        progress.render(
+            ProgressState(
+                current=i,
+                total=total_new,
+                added=processed_count,
+                skipped=skipped_count,
+                errors=error_count,
+                items=total_items,
+                current_receipt=current_receipt,
+            )
+        )
 
         time.sleep(LidlConfig.REQUEST_DELAY)
+
+    progress.close()
 
     # Final sort if we added new receipts
     if processed_count > 0:
@@ -94,6 +139,8 @@ def update_data(
 
     print("\n=== UPDATE ABGESCHLOSSEN ===")
     print(f"Neue Kassenbons hinzugefügt: {processed_count}")
+    print(f"Fehler/Uebersprungen: {skipped_count}")
+    print(f"Verarbeitete Artikel: {total_items}")
     print(f"Gesamte Kassenbons in Datei: {total_receipts}")
 
     return True

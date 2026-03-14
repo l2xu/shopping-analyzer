@@ -6,7 +6,7 @@ from typing import Dict, Any
 from .file_manager import load_existing_receipts, save_receipts_to_json
 
 
-def add_receipt_to_json(receipt_data: Dict[str, Any]) -> None:
+def add_receipt_to_json(receipt_data: Dict[str, Any], verbose: bool = True) -> None:
     """Add or update a single receipt in the JSON file immediately."""
     existing_ids, existing_receipts = load_existing_receipts()
 
@@ -28,10 +28,11 @@ def add_receipt_to_json(receipt_data: Dict[str, Any]) -> None:
 
     save_receipts_to_json(existing_receipts)
 
-    action = "aktualisiert" if receipt_updated else "hinzugefügt"
-    print(
-        f"Kassenbon {action}: {receipt_data['purchase_date']} - {receipt_data['total_price']}"
-    )
+    if verbose:
+        action = "aktualisiert" if receipt_updated else "hinzugefügt"
+        print(
+            f"Kassenbon {action}: {receipt_data['purchase_date']} - {receipt_data['total_price']}"
+        )
 
 
 def sort_receipts_by_date() -> int:

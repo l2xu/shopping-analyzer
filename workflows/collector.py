@@ -7,6 +7,7 @@ import requests
 from config import LidlConfig
 from api import get_tickets_page, get_receipt_details_and_html
 from storage import load_existing_receipts, add_receipt_to_json
+from .progress_display import ReceiptProgressDisplay, ProgressState
 
 
 def collect_all_receipt_ids(session: requests.Session) -> List[str]:
@@ -91,22 +92,65 @@ def process_all_tickets(session: requests.Session) -> Tuple[int, int, int]:
 
     print(f"Neue Kassenbons zu verarbeiten: {len(new_receipt_ids)}")
 
+    progress = ReceiptProgressDisplay()
+    total_new = len(new_receipt_ids)
+    total_items = 0
+    error_count = 0
+    current_receipt = "-"
+
+    progress.render(
+        ProgressState(
+            current=0,
+            total=total_new,
+            added=processed_count,
+            skipped=skipped_count,
+            errors=error_count,
+            items=total_items,
+            current_receipt=current_receipt,
+        )
+    )
+
     # Process each new receipt
     for i, receipt_id in enumerate(new_receipt_ids, 1):
-        print(f"Verarbeite Kassenbon {i}/{len(new_receipt_ids)}: {receipt_id}")
+        current_receipt = receipt_id
+        progress.render(
+            ProgressState(
+                current=i - 1,
+                total=total_new,
+                added=processed_count,
+                skipped=skipped_count,
+                errors=error_count,
+                items=total_items,
+                current_receipt=current_receipt,
+            )
+        )
 
         # Get receipt details and HTML
         receipt_data = get_receipt_details_and_html(session, receipt_id)
 
         if receipt_data and receipt_data["items"]:
-            add_receipt_to_json(receipt_data)
+            add_receipt_to_json(receipt_data, verbose=False)
             processed_count += 1
-            print(f"✓ Verarbeitet: {len(receipt_data['items'])} Artikel")
+            total_items += len(receipt_data["items"])
         else:
-            print("⚠ Fehler beim Verarbeiten")
             skipped_count += 1
+            error_count += 1
+
+        progress.render(
+            ProgressState(
+                current=i,
+                total=total_new,
+                added=processed_count,
+                skipped=skipped_count,
+                errors=error_count,
+                items=total_items,
+                current_receipt=current_receipt,
+            )
+        )
 
         # Add pause between requests to be respectful
         time.sleep(LidlConfig.REQUEST_DELAY)
+
+    progress.close()
 
     return processed_count, skipped_count, len(all_receipt_ids) // 10 + 1
