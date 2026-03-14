@@ -21,7 +21,7 @@ class ProgressState:
 class ReceiptProgressDisplay:
     """Render a fixed 3-line progress block in the terminal."""
 
-    def __init__(self, bar_width: int = 32) -> None:
+    def __init__(self, bar_width: int = 35) -> None:
         self.bar_width = bar_width
         self._initialized = False
 
@@ -30,7 +30,12 @@ class ReceiptProgressDisplay:
         total = max(state.total, 1)
         fraction = min(max(state.current / total, 0.0), 1.0)
         filled = int(self.bar_width * fraction)
-        bar = "#" * filled + "-" * (self.bar_width - filled)
+        cart_pos = min(filled, self.bar_width - 1)
+
+        bar_chars = ["="] * filled + ["-"] * (self.bar_width - filled)
+        if self.bar_width > 0:
+            bar_chars[cart_pos] = "🛒"
+        bar = "".join(bar_chars)
         percentage = fraction * 100
 
         line1 = f"[{bar}] {state.current}/{state.total} ({percentage:5.1f}%)"
