@@ -86,6 +86,7 @@ def extract_receipt_items_from_html(soup: BeautifulSoup) -> List[Dict[str, Any]]
 
                 items.append(
                     {
+                        "art_id": main_span.get("data-art-id"),
                         "name": art_description,
                         "price": unit_price,
                         "quantity": art_quantity,

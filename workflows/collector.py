@@ -37,6 +37,9 @@ def collect_all_receipt_ids(session: requests.Session) -> List[str]:
         if not tickets:
             break
 
+        # Log unknown fields on the first ticket of the first page for API discovery.
+        _logged_list_discovery = getattr(collect_all_receipt_ids, "_logged_list_discovery", False)
+
         # Extract receipt IDs from tickets (only those with HTML documents)
         for ticket in tickets:
             if isinstance(ticket, dict):
@@ -45,8 +48,23 @@ def collect_all_receipt_ids(session: requests.Session) -> List[str]:
                     receipt_id = ticket_data["id"]
                     has_html = ticket_data.get("isHtml", False)
                 else:
+                    ticket_data = ticket
                     receipt_id = ticket.get("id", "")
                     has_html = ticket.get("isHtml", False)
+
+                # Log unknown fields once to discover richer API data
+                if not _logged_list_discovery and isinstance(ticket_data, dict):
+                    known_list_keys = {"id", "isHtml", "date", "totalAmount", "store"}
+                    unknown = set(ticket_data.keys()) - known_list_keys
+                    if unknown:
+                        print(f"  [API discovery] ticket list item has extra fields: {sorted(unknown)}")
+                        for key in sorted(unknown):
+                            val = repr(ticket_data[key])
+                            if len(val) > 200:
+                                val = val[:200] + "…"
+                            print(f"    {key}: {val}")
+                    collect_all_receipt_ids._logged_list_discovery = True
+                    _logged_list_discovery = True
 
                 if receipt_id and has_html:
                     all_receipt_ids.append(receipt_id)
