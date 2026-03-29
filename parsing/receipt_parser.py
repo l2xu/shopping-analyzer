@@ -105,9 +105,12 @@ def parse_receipt_html(
                         pass
 
                 # If no direct Pfandrückgabe amount found, look for calculation lines
+                # with a *negative* integer quantity — pfand returns appear as e.g. "-3 x 0,25".
+                # Positive-quantity spans (regular items, kg weights like "0,248 x 3,55")
+                # must not be matched here.
                 if pfand_savings == 0:
                     pfand_calc_matches = re.findall(
-                        r"(-?\d+)\s*x\s*(-?\d+,\d+)", purchase_text
+                        r"(-\d+)\s*x\s*(\d+,\d+)", purchase_text
                     )
                     for qty_match, price_match in pfand_calc_matches:
                         try:
