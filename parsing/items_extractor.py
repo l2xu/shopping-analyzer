@@ -65,13 +65,57 @@ def extract_receipt_items_from_html(soup: BeautifulSoup) -> List[Dict[str, Any]]
                             except (ValueError, AttributeError):
                                 pass
 
-                # Determine unit (kg or stk) from text content
+                # Determine unit (kg or stk).
+                # Primary signal: a non-integer quantity (e.g. "0,7", "1,4") means
+                # the item is priced per kg.  Whole-number quantities with a trailing
+                # ",0" (e.g. "2,0" for 2 pieces) must remain stk.
                 unit = "stk"
-                for span in spans:
-                    span_text = span.get_text()
-                    if "kg" in span_text or "EUR/kg" in span_text:
+                try:
+                    qty_float = float(art_quantity.replace(",", "."))
+                    if qty_float != int(qty_float):
                         unit = "kg"
-                        break
+                except (ValueError, AttributeError):
+                    pass
+                # Fallback: scan span text for "kg" or "кг" markers
+                if unit == "stk":
+                    for span in spans:
+                        span_text = span.get_text()
+                        if "kg" in span_text or "кг" in span_text or "КГ" in span_text:
+                            unit = "kg"
+                            break
+
+                # For kg items, try to extract precise weight from visible text.
+                # The data-art-quantity attribute is truncated to 1 decimal by Lidl's
+                # server, while the visible receipt text has full precision.
+                # Two known formats:
+                #   "0,248 kg"  / "0,248 кг"  (unit label after quantity)
+                #   "0,248 x 3,55"            (qty x unit_price, Lidl Bulgaria)
+                # Skip if the API already provides 3+ decimal digits.
+                api_decimal = re.search(r"[,\.](\d+)", art_quantity)
+                api_has_precise = api_decimal and len(api_decimal.group(1)) >= 3
+                if unit == "kg" and not api_has_precise:
+                    for span in spans:
+                        span_text = span.get_text()
+                        weight_match = (
+                            re.search(r"(\d+[,\.]\d{2,})\s*(?:kg|кг|КГ)", span_text)
+                            or re.search(r"(\d+[,\.]\d{2,})\s*x\s*\d", span_text)
+                        )
+                        if weight_match:
+                            text_qty_str = weight_match.group(1)
+                            try:
+                                text_val = float(text_qty_str.replace(",", "."))
+                                api_val = float(art_quantity.replace(",", "."))
+                                if abs(text_val - api_val) >= 0.1:
+                                    print(
+                                        f"Warnung: Sichtbarer Text-Gewichtswert '{text_qty_str}' "
+                                        f"weicht erheblich vom API-Wert '{art_quantity}' ab "
+                                        f"— API-Wert wird verwendet"
+                                    )
+                                else:
+                                    art_quantity = text_qty_str
+                            except (ValueError, AttributeError):
+                                art_quantity = text_qty_str
+                            break
 
                 # Convert values for calculation
                 try:
