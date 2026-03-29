@@ -5,6 +5,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pytest
 from bs4 import BeautifulSoup
 from parsing.items_extractor import extract_receipt_items_from_html
 
@@ -116,3 +117,43 @@ def test_kg_item_without_precise_text_falls_back_to_attribute():
     item = items[0]
     assert item["unit"] == "kg"
     assert item["quantity"] == "0,3"
+
+
+def test_visible_text_deviating_from_api_is_ignored(capsys):
+    """If visible text weight deviates ≥0.1 from API quantity, warn and keep API value."""
+    html = """
+    <span class="article" data-art-id="TOD002" data-art-description="ЯБЪЛКИ НА КГ"
+          data-art-quantity="0,2" data-unit-price="2,00">1,248 kg</span>
+    <span class="article css_bold" data-art-id="TOD002" data-art-description="ЯБЪЛКИ НА КГ"
+          data-art-quantity="0,2" data-unit-price="2,00">0,40</span>
+    """
+    items = extract_receipt_items_from_html(make_soup(html))
+    assert len(items) == 1
+    item = items[0]
+    assert item["unit"] == "kg"
+    # Visible text says 1,248 but API says 0,2 — large deviation, API value must win
+    assert item["quantity"] == "0,2", (
+        f"Expected '0,2' (API value) but got '{item['quantity']}' — "
+        "deviating visible-text value should be ignored"
+    )
+    captured = capsys.readouterr()
+    assert captured.out, "Expected a warning to be printed to stdout"
+
+
+def test_api_already_has_three_decimals_skips_regex():
+    """When data-art-quantity already has 3+ decimal digits, skip visible-text regex."""
+    html = """
+    <span class="article" data-art-id="TOD003" data-art-description="ДОМАТИ НА КГ"
+          data-art-quantity="0,248" data-unit-price="3,55">0,999 kg</span>
+    <span class="article css_bold" data-art-id="TOD003" data-art-description="ДОМАТИ НА КГ"
+          data-art-quantity="0,248" data-unit-price="3,55">0,88</span>
+    """
+    items = extract_receipt_items_from_html(make_soup(html))
+    assert len(items) == 1
+    item = items[0]
+    assert item["unit"] == "kg"
+    # API already has 3 decimals — must use it as-is, not override with visible text
+    assert item["quantity"] == "0,248", (
+        f"Expected '0,248' (API value) but got '{item['quantity']}' — "
+        "regex should be skipped when API already has 3+ decimals"
+    )

@@ -90,7 +90,10 @@ def extract_receipt_items_from_html(soup: BeautifulSoup) -> List[Dict[str, Any]]
                 # Two known formats:
                 #   "0,248 kg"  / "0,248 кг"  (unit label after quantity)
                 #   "0,248 x 3,55"            (qty x unit_price, Lidl Bulgaria)
-                if unit == "kg":
+                # Skip if the API already provides 3+ decimal digits.
+                api_decimal = re.search(r"[,\.](\d+)", art_quantity)
+                api_has_precise = api_decimal and len(api_decimal.group(1)) >= 3
+                if unit == "kg" and not api_has_precise:
                     for span in spans:
                         span_text = span.get_text()
                         weight_match = (
@@ -98,7 +101,20 @@ def extract_receipt_items_from_html(soup: BeautifulSoup) -> List[Dict[str, Any]]
                             or re.search(r"(\d+[,\.]\d{2,})\s*x\s*\d", span_text)
                         )
                         if weight_match:
-                            art_quantity = weight_match.group(1)
+                            text_qty_str = weight_match.group(1)
+                            try:
+                                text_val = float(text_qty_str.replace(",", "."))
+                                api_val = float(art_quantity.replace(",", "."))
+                                if abs(text_val - api_val) >= 0.1:
+                                    print(
+                                        f"Warnung: Sichtbarer Text-Gewichtswert '{text_qty_str}' "
+                                        f"weicht erheblich vom API-Wert '{art_quantity}' ab "
+                                        f"— API-Wert wird verwendet"
+                                    )
+                                else:
+                                    art_quantity = text_qty_str
+                            except (ValueError, AttributeError):
+                                art_quantity = text_qty_str
                             break
 
                 # Convert values for calculation
